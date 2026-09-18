@@ -2,6 +2,10 @@
 
 #include <cstdint>
 #include <vector>
+#include <array>
+
+#include "simplePipeline/SimplePipeline.hpp"
+#include "isa/definitions.hpp"
 
 namespace simulator{
 
@@ -14,13 +18,19 @@ struct CpuState{
     Memory* memory;
 };
 
-struct Memory {
+struct Memory{
     std::vector<uint8_t> data; 
 };
 
-class Cpu {
+class Cpu{
     CpuState state_;
-    
+    SimplePipeline simpPipeline_;
+public:
+    void runCpu();
+    void loadInstr(const Word instr);
+    void loadProgram(const std::vector<Word>& program);
+
+    CpuState getState(){ return state_; }
 };
 
 }
