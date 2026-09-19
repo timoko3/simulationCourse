@@ -1,6 +1,10 @@
 #include "extractors.hpp"
 
+#include <cstddef>
+
 namespace simulator{
+
+constexpr size_t REGISTER_BITS_SIZE = 5;
 
 Word
 Extractor::extract(Word insn, int len, int off){
@@ -24,17 +28,32 @@ Extractor::extractFunct2(Word insn){
 
 Word 
 Extractor::extractRs(Word insn){
-    return extract(insn, 5, 21);
+    return extract(insn, REGISTER_BITS_SIZE, 21);
 }
 
 Word 
 Extractor::extractRt(Word insn){
-    return extract(insn, 5, 16);
+    return extract(insn, REGISTER_BITS_SIZE, 16);
 }
 
 Word 
 Extractor::extractAddRd(Word insn){
-    return extract(insn, 5, 11);
+    return extract(insn, REGISTER_BITS_SIZE, 11);
+}
+
+Word 
+Extractor::extractLiRt(Word insn){
+    return extract(insn, REGISTER_BITS_SIZE, 16);
+}
+
+Word 
+Extractor::extractImm(Word insn){
+    return extract(insn, 16, 0);
+}
+
+Word 
+Extractor::extractSyscallCode(Word insn){
+    return extract(insn, 20, 6);
 }
 
 }

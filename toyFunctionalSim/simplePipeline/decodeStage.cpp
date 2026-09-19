@@ -14,6 +14,15 @@ DecodeStage::instrDecode(const Word& rawInstr){
         case Opcode::K_SPECIAL:
             decodeSpecial(rawInstr, instr);
             break;
+        case Opcode::K_LI:
+            if(checkField(rawInstr, 5, 21, 0)){
+                decodeLi(rawInstr, instr);
+            }
+            else{
+                std::cerr << "incorrect encoding\n";
+                // TODO: exception;
+            }
+            break;
         default:
             break;
     }
@@ -35,7 +44,9 @@ DecodeStage::decodeSpecial(const Word& rawInstr, Instruction& instr){
                 // TODO: exception;
             }
             break;
-        
+        case Funct6::K_SYSCALL:
+            decodeSyscall(rawInstr, instr);
+            break;
         default:
             break;
     }
@@ -49,6 +60,22 @@ DecodeStage::decodeAdd(const Word& rawInstr, Instruction& instr){
     instr.src2 = extractor_.extractRt(rawInstr);
 
     instr.dst  = extractor_.extractAddRd(rawInstr);
+}
+
+inline void
+DecodeStage::decodeLi(const Word& rawInstr, Instruction& instr){
+    instr.instrKind = InstrKind::I_LI;
+
+    instr.src1 = extractor_.extractImm(rawInstr); 
+
+    instr.dst  = extractor_.extractLiRt(rawInstr);
+}
+
+inline void
+DecodeStage::decodeSyscall(const Word& rawInstr, Instruction& instr){
+    instr.instrKind = InstrKind::I_SYSCALL;
+
+    instr.src1 = extractor_.extractSyscallCode(rawInstr);
 }
 
 inline bool

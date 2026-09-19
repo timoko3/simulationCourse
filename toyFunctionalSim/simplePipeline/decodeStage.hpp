@@ -13,6 +13,10 @@ class DecodeStage{
     inline void decodeSpecial(const Word& rawInstr, Instruction& instr);
 
     inline void decodeAdd(const Word& rawInstr, Instruction& instr);
+
+    inline void decodeLi(const Word& rawInstr, Instruction& instr);
+
+    inline void decodeSyscall(const Word& rawInstr, Instruction& instr);
 public:
     Instruction instrDecode(const Word& rawInstr);
 };

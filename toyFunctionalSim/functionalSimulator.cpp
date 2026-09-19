@@ -1,6 +1,12 @@
+#include <cstdlib>
 #include <iostream>
+#include <stdexcept>
 
 #include "functionalSimulator.hpp"
+
+#include "syscall.hpp"
+
+#include <sys/syscall.h>
 
 namespace simulator
 {
@@ -21,17 +27,27 @@ FunctionalSimulator::loadProgram(const std::vector<Word>& program){
 
 void
 FunctionalSimulator::runSimulation(){
-    if(isProgLoaded()){
-        stepResult stepRes = SR_NORMAL;
-        while (stepRes == SR_NORMAL){
-            stepRes = cpu_.step(memory_);
+    if (!isProgLoaded()) {
+        throw std::logic_error("Program is not loaded");
+    }
+
+    try {
+        while (cpu_.step(memory_) == SR_NORMAL) {
         }
     }
-    else{
-        std::cerr << "program is not loaded\n";
-        // TODO: exception 
+    catch (const SimSyscall& syscall) {
+        if(syscall.type == SYS_exit){
+            // std::cout << "r3 = " << cpu_.getState().getReg(3) << '\n';
+            std::cout << "Program exited with code "
+                << syscall.code << '\n';
+            std::exit(syscall.code);
+        }
+        else{
+            std::cout << "syscall with "
+                << syscall.type
+                << " not handled" << '\n';
+        }
     }
-    
 }
 
 }

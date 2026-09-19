@@ -15,8 +15,12 @@ public:
 
     Word extractRs(Word insn);
     Word extractRt(Word insn);
-
     Word extractAddRd(Word insn);
+    Word extractLiRt(Word insn);
+
+    Word extractImm(Word insn);
+
+    Word extractSyscallCode(Word insn);
 };
 
 }
