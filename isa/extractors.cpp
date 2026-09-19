@@ -2,7 +2,7 @@
 
 namespace simulator{
 
-inline Word
+Word
 Extractor::extract(Word insn, int len, int off){
     return (insn >> off) & ( (1 << len) - 1 );
 }

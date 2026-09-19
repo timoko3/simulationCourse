@@ -6,7 +6,7 @@ namespace simulator{
     
 class Extractor{
 public:
-    inline Word extract(Word insn, int len, int off);
+    Word extract(Word insn, int len, int off);
     
     Word extractOpcode(Word insn);
 

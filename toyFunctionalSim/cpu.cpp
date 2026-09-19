@@ -8,8 +8,6 @@ Cpu::step(Memory& memory){
     Instruction decodedInstr = simpPipeline_.decode_.instrDecode(rawInstr);
     simpPipeline_.exec_.execInstr(state_, memory, decodedInstr);
 
-    
-
     return SR_NORMAL;
 }
 

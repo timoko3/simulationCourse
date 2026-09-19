@@ -12,8 +12,8 @@ ExecStage::execInstr(CpuState& state, Memory& memory, Instruction instr){
         default:
             break;
     }
-    
-    state.pc++;
+
+    state.pc += sizeof(Word);
 }
 
 inline void
