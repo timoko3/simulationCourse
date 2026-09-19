@@ -3,9 +3,8 @@
 namespace simulator{
 
 Word
-FetchStage::instrFetch(Cpu& cpu){
-    CpuState state = cpu.getState(); 
-    return state.memory->data[state.pc];
+FetchStage::instrFetch(const Memory& memory, Register pc){   
+    return memory.data[pc];
 }
 
 }
