@@ -22,7 +22,7 @@ FunctionalSimulator::runSimulation(){
     if(isProgLoaded()){
         stepResult stepRes = SR_NORMAL;
         while (stepRes == SR_NORMAL){
-            stepRes = cpu_.step();
+            stepRes = cpu_.step(memory_);
         }
     }
     else{

@@ -5,6 +5,7 @@
 #include <array>
 
 #include "cpuState.hpp"
+#include "memory.hpp"
 #include "simplePipeline/simplePipeline.hpp"
 
 namespace simulator{
@@ -18,8 +19,8 @@ class Cpu{
     CpuState state_;
     SimplePipeline simpPipeline_;
 public:
-    stepResult step();
-    
+    stepResult step(Memory& memory);
+
     CpuState& getState(){ return state_; }
 };
 

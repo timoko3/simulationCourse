@@ -2,9 +2,10 @@
 
 #include <cstdint>
 
+#include "isa/definitions.hpp"
+
 namespace simulator{
 
-using Register = uint32_t;
 constexpr std::size_t kNumRegs = 32;
 
 struct CpuState{

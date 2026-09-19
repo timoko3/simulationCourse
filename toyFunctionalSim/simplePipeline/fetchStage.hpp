@@ -2,6 +2,8 @@
 
 #include "isa/definitions.hpp"
 
+#include "memory.hpp"
+
 namespace simulator{
 
 class FetchStage{
