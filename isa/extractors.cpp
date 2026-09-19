@@ -18,15 +18,23 @@ Extractor::extractFunct6(Word insn){
 }
 
 Word 
-Extractor::extractFunct6(Word insn){
-    return extract(insn, 5, 6);
-}
-
-Word 
 Extractor::extractFunct2(Word insn){
     return extract(insn, 2, 14);
 }
 
+Word 
+Extractor::extractRs(Word insn){
+    return extract(insn, 5, 21);
+}
 
+Word 
+Extractor::extractRt(Word insn){
+    return extract(insn, 5, 16);
+}
+
+Word 
+Extractor::extractAddRd(Word insn){
+    return extract(insn, 5, 11);
+}
 
 }

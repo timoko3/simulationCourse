@@ -15,6 +15,8 @@ FunctionalSimulator::loadProgram(const std::vector<Word>& program){
         // TODO: exception 
     }
     cpu_.getState().pc = 0;
+
+    isProgLoad = true;
 }
 
 void

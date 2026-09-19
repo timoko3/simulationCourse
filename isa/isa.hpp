@@ -4,8 +4,28 @@
 
 namespace simulator{
 
+enum class InstrKind {
+    I_INVALID,
+    I_NOP,
+    I_ADD,
+    I_BEQ,
+    I_ADDI,
+    I_LD,
+    I_BEXT,
+    I_LI,
+    I_J,
+    I_ST,
+    I_LDP,
+    I_CLS,
+    I_SBIT,
+    I_USAT,
+    I_XOR,
+    I_LDREG,
+    I_SYSCALL,
+};
+
 enum class Opcode : std::uint8_t {
-    K_UNKNOWN = 0b0, 
+    K_SPECIAL = 0b0, 
     K_BEQ     = 0b111111,
     K_ADDI    = 0b110000,
     K_LD      = 0b001010,
@@ -27,7 +47,7 @@ enum class Funct6 : std::uint8_t {
 };
 
 struct Instruction {
-    Opcode opc{};
+    InstrKind instrKind{};
     Word src1{}, src2{}, dst{};
 };
 
