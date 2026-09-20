@@ -5,6 +5,12 @@ project(SimCourse
     LANGUAGES CXX
 )
 
+option(
+    THREADED_DISPATCH
+    "Enable threaded dispatch using clang::musttail"
+    OFF
+)
+
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Common utilities (sources from the generalFunctions submodule).
@@ -46,6 +52,24 @@ add_library(simulator_core STATIC
 )
 
 target_compile_features(simulator_core PUBLIC cxx_std_17)
+
+if(THREADED_DISPATCH)
+    if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        message(FATAL_ERROR
+            "THREADED_DISPATCH requires Clang. "
+            "Select Clang or set THREADED_DISPATCH=OFF."
+        )
+    endif()
+
+    target_sources(simulator_core PRIVATE
+        toyFunctionalSim/cpuRunThreaded.cpp
+        toyFunctionalSim/threadedExecutor.cpp
+    )
+else()
+    target_sources(simulator_core PRIVATE
+        toyFunctionalSim/cpuRunSwitch.cpp
+    )
+endif()
 
 target_include_directories(simulator_core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"

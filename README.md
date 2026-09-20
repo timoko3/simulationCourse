@@ -28,4 +28,7 @@ ctest --test-dir build --output-on-failure
 # Запустить симулятор с файлом машинных инструкций.
 ./build/simcourse ./program.bin
 ```
-
+## Threaded сборка
+```sh
+# Настроить сборку (первый раз или после изменения настроек).
+cmake -S . -B build     -DCMAKE_CXX_COMPILER=clang++     -DCMAKE_BUILD_TYPE=Release     -DTHREADED_DISPATCH=ON

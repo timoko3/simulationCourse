@@ -59,7 +59,7 @@ ExecStage::execInstr(CpuState& state, Memory& memory, Instruction instr){
     }
 }
 
-inline void
+void
 ExecStage::execAdd(CpuState& state, Instruction instr){
     Register rs = state.getReg(instr.src1);
     Register rt = state.getReg(instr.src2);
@@ -69,13 +69,13 @@ ExecStage::execAdd(CpuState& state, Instruction instr){
     state.pc += sizeof(Word);
 }
 
-inline void
+void
 ExecStage::execAddi(CpuState& state, Instruction instr){
     state.setReg(instr.dst, state.getReg(instr.src1) + instr.src2);
     state.pc += sizeof(Word);
 }
 
-inline void
+void
 ExecStage::execBeq(CpuState& state, Instruction instr){
     if (state.getReg(instr.src1) == state.getReg(instr.src2)) {
         state.pc += instr.dst << 2;
@@ -84,7 +84,7 @@ ExecStage::execBeq(CpuState& state, Instruction instr){
     }
 }
 
-inline void
+void
 ExecStage::execBext(CpuState& state, Instruction instr){
     const Word value = state.getReg(instr.src1);
     const Word mask = state.getReg(instr.src2);
@@ -104,7 +104,7 @@ ExecStage::execBext(CpuState& state, Instruction instr){
     state.pc += sizeof(Word);
 }
 
-inline void
+void
 ExecStage::execXor(CpuState& state, Instruction instr){
     Register rs = state.getReg(instr.src1);
     Register rt = state.getReg(instr.src2);
@@ -114,7 +114,7 @@ ExecStage::execXor(CpuState& state, Instruction instr){
     state.pc += sizeof(Word);
 }
 
-inline void
+void
 ExecStage::execCls(CpuState& state, Instruction instr){
     const Register value = state.getReg(instr.src1);
     Word count = 0;
@@ -127,7 +127,7 @@ ExecStage::execCls(CpuState& state, Instruction instr){
     state.pc += sizeof(Word);
 }
 
-inline void
+void
 ExecStage::execUsat(CpuState& state, Instruction instr){
     const Word limit = (Word{1} << instr.src2) - 1;
     state.setReg(instr.dst, std::min(state.getReg(instr.src1), limit));
@@ -135,7 +135,7 @@ ExecStage::execUsat(CpuState& state, Instruction instr){
     state.pc += sizeof(Word);
 }
 
-inline void
+void
 ExecStage::execLdReg(CpuState& state, Memory& memory, Instruction instr){
     const Addr addr = state.getReg(instr.src1) + state.getReg(instr.src2);
     requireAligned(addr);
@@ -145,7 +145,7 @@ ExecStage::execLdReg(CpuState& state, Memory& memory, Instruction instr){
     state.pc += sizeof(Word);
 }
 
-inline void
+void
 ExecStage::execLd(CpuState& state, Memory& memory, Instruction instr){
     const Addr addr = state.getReg(instr.src1) + instr.src2;
     requireAligned(addr);
@@ -153,7 +153,7 @@ ExecStage::execLd(CpuState& state, Memory& memory, Instruction instr){
     state.pc += sizeof(Word);
 }
 
-inline void
+void
 ExecStage::execSt(CpuState& state, Memory& memory, Instruction instr){
     const Addr addr = state.getReg(instr.src1) + instr.dst;
     requireAligned(addr);
@@ -161,7 +161,7 @@ ExecStage::execSt(CpuState& state, Memory& memory, Instruction instr){
     state.pc += sizeof(Word);
 }
 
-inline void
+void
 ExecStage::execLdp(CpuState& state, Memory& memory, Instruction instr){
     const Addr addr = state.getReg(instr.src1) + instr.src2;
     requireAligned(addr);
@@ -173,26 +173,26 @@ ExecStage::execLdp(CpuState& state, Memory& memory, Instruction instr){
     state.pc += sizeof(Word);
 }
 
-inline void
+void
 ExecStage::execSbit(CpuState& state, Instruction instr){
     state.setReg(instr.dst, Word{1} << instr.src2);
     state.pc += sizeof(Word);
 }
 
-inline void
+void
 ExecStage::execLi(CpuState& state, Instruction instr){
     state.setReg(instr.dst, instr.src1);
 
     state.pc += sizeof(Word);
 }
 
-inline void
+void
 ExecStage::execJ(CpuState& state, Instruction instr){
 
     state.pc = (state.pc & 0xF0000000) | (instr.src1 << 2);
 }
 
-inline void
+void
 ExecStage::execSyscall(CpuState& state, Instruction instr){
     throw SimSyscall{state.getReg(SYSCALL_NUM_REG), instr.src1};
 }

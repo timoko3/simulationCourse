@@ -30,8 +30,7 @@ FunctionalSimulator::runSimulation(){
     }
 
     try {
-        while (cpu_.step(memory_) == SR_NORMAL) {
-        }
+        cpu_.run(memory_);
     }
     catch (const SimSyscall& syscall) {
         if(syscall.type == SYSCALL_EXIT){

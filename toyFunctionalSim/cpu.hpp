@@ -20,14 +20,22 @@ enum stepResult{
 };
 
 class Cpu{
+    using iCache = cache::CacheLIRS<Instruction, Word>; 
+
     CpuState state_;
     SimplePipeline simpPipeline_;
-    cache::CacheLIRS<Instruction, Word> iCache_{I_CACHE_SIZE};
+    iCache iCache_{I_CACHE_SIZE};
 public:
     stepResult step(Memory& memory);
 
+    void run(Memory& memory);
+
     CpuState& getState(){ return state_; }
     const CpuState& getState() const { return state_; }
+
+    SimplePipeline& getSimplePipeline() { return simpPipeline_; } 
+
+    iCache& getICache() { return iCache_; } 
 };
 
 }

@@ -22,6 +22,7 @@ enum class InstrKind {
     I_XOR,
     I_LDREG,
     I_SYSCALL,
+    I_COUNT,
 };
 
 enum class Opcode : std::uint8_t {
