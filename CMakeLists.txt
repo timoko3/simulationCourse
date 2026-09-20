@@ -13,6 +13,10 @@ add_library(general_functions STATIC
     generalFunctions/logger.cpp
 )
 
+add_library(cache INTERFACE
+    cacheResearch/cache.h)
+
+
 target_compile_features(general_functions PUBLIC cxx_std_17)
 
 target_include_directories(general_functions PUBLIC

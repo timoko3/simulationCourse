@@ -8,7 +8,11 @@
 #include "memory.hpp"
 #include "simplePipeline/simplePipeline.hpp"
 
+#include "cacheResearch/cache.h"
+
 namespace simulator{
+
+constexpr size_t I_CACHE_SIZE = 64;
 
 enum stepResult{
     SR_NORMAL,
@@ -18,6 +22,7 @@ enum stepResult{
 class Cpu{
     CpuState state_;
     SimplePipeline simpPipeline_;
+    cache::CacheLIRS<Instruction, Word> iCache_{I_CACHE_SIZE};
 public:
     stepResult step(Memory& memory);
 

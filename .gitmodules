@@ -1,3 +1,6 @@
 [submodule "generalFunctions"]
 	path = generalFunctions
 	url = git@github.com:timoko3/generalFunctions.git
+[submodule "cacheResearch"]
+	path = cacheResearch
+	url = https://github.com/timoko3/cacheResearch
