@@ -39,7 +39,6 @@ FunctionalSimulator::runSimulation(){
         if(syscall.type == SYS_exit){
             std::cout << "Program exited with code "
                 << syscall.code << '\n';
-            std::exit(syscall.code);
         }
         else{
             std::cout << "syscall with "

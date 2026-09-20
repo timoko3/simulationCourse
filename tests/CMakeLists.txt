@@ -17,6 +17,8 @@ FetchContent_MakeAvailable(googletest)
 add_executable(simcourse_tests
     extractorTests.cpp
     isaTests/addTests.cpp
+    isaTests/liTests.cpp
+    isaTests/syscallTests.cpp
 )
 
 target_compile_features(simcourse_tests PRIVATE cxx_std_17)
