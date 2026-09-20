@@ -19,6 +19,28 @@ public:
     Word extractLiRt(Word insn);
 
     Word extractImm(Word insn);
+    Word extractSignedImm(Word insn, int len = 16);
+
+    Word extractXorRd(Word insn);
+    Word extractXorRt(Word insn);
+    Word extractXorRs(Word insn);
+
+    Word extractJIndex(Word insn);
+
+    Word extractClsRd(Word insn);
+    Word extractClsRs(Word insn);
+
+    Word extractBextRd(Word insn);
+    Word extractBextRs1(Word insn);
+    Word extractBextRs2(Word insn);
+
+    Word extractUsatRd(Word insn);
+    Word extractUsatRs(Word insn);
+    Word extractUsatImm(Word insn);
+
+    Word extractLdRegBase(Word insn);
+    Word extractLdRegRt(Word insn);
+    Word extractLdRegRm(Word insn);
 
     Word extractSyscallCode(Word insn);
 };

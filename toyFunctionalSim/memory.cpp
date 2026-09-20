@@ -7,12 +7,11 @@ namespace simulator{
 
 void
 Memory::writeProgram(const std::vector<Word>& program){
-    if (program.size() > data.max_size() / sizeof(Word)) {
+    if (program.size() > data.size() / sizeof(Word)) {
         throw std::length_error("Program is too large");
     }
 
     const auto byteCount = program.size() * sizeof(Word);
-    data.resize(byteCount);
 
     if (byteCount != 0) {
         std::memcpy(data.data(), program.data(), byteCount);

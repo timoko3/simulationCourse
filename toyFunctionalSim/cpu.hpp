@@ -27,6 +27,7 @@ public:
     stepResult step(Memory& memory);
 
     CpuState& getState(){ return state_; }
+    const CpuState& getState() const { return state_; }
 };
 
 }

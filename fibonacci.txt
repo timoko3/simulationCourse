@@ -1,0 +1,35 @@
+LI 1, 5
+LI 2, 0
+LI 3, 0
+
+// 0 и 1 случаи
+
+LI 4, 0
+BEQ 1, 4, end
+
+LI 3, 1
+
+LI 4, 1
+BEQ 1, 4, end 
+
+LI 4, 1
+
+LI 6, 1024
+start:
+BEQ 4, 1, end 
+    ADD 5, 2, 3
+
+    ST 3, [6, 0]
+    LD 2, [6, 0]
+
+    ST 5, [6, 0]
+    LD 3, [6, 0]
+
+    ADDI 4, 1
+J start 
+end:
+
+//result в reg[3]
+
+LI 9, 60
+SYSCALL

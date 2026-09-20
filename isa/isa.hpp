@@ -42,13 +42,14 @@ enum class Funct6 : std::uint8_t {
     K_ADD     = 0b010101,
     K_BEXT    = 0b111110,
     K_CLS     = 0b001011,
-    k_XOR     = 0b011100,
+    K_XOR     = 0b011100,
     K_SYSCALL = 0b010100
 };
 
 struct Instruction {
     InstrKind instrKind{};
     Word src1{}, src2{}, dst{};
+    Word dst2{};
 };
 
 }

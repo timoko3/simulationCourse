@@ -12,7 +12,7 @@ struct CpuState{
     Register gpr_regs[kNumRegs]{};
     Register pc{};
 
-    Register getReg(Word regNum) { 
+    Register getReg(Word regNum) const { 
         return gpr_regs[regNum];
     };
     

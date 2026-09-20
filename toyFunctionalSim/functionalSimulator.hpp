@@ -18,6 +18,7 @@ public:
     void loadProgram(const std::vector<Word>& program) override;
 
     bool isProgLoaded() const { return isProgLoad; }; 
+    const CpuState& getState() const { return cpu_.getState(); }
 };
 
 }

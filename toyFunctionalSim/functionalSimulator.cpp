@@ -6,7 +6,6 @@
 
 #include "syscall.hpp"
 
-#include <sys/syscall.h>
 
 namespace simulator
 {
@@ -35,7 +34,7 @@ FunctionalSimulator::runSimulation(){
         }
     }
     catch (const SimSyscall& syscall) {
-        if(syscall.type == SYS_exit){
+        if(syscall.type == SYSCALL_EXIT){
             std::cout << "Program exited with code "
                 << syscall.code << '\n';
         }
