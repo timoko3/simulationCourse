@@ -37,7 +37,6 @@ FunctionalSimulator::runSimulation(){
     }
     catch (const SimSyscall& syscall) {
         if(syscall.type == SYS_exit){
-            // std::cout << "r3 = " << cpu_.getState().getReg(3) << '\n';
             std::cout << "Program exited with code "
                 << syscall.code << '\n';
             std::exit(syscall.code);
