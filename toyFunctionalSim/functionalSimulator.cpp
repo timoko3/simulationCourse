@@ -17,8 +17,7 @@ FunctionalSimulator::loadProgram(const std::vector<Word>& program){
         memory_.writeProgram(program);
     }
     else {
-        std::cerr << "program is already loaded\n";
-        // TODO: exception 
+        throw std::logic_error("program is already loaded.");
     }
     cpu_.getState().pc = 0;
 
@@ -41,9 +40,11 @@ FunctionalSimulator::runSimulation(){
                 << syscall.code << '\n';
         }
         else{
-            std::cout << "syscall with "
+            std::cerr << "syscall with "
                 << syscall.type
                 << " not handled" << '\n';
+
+            throw std::logic_error("this syscall type is not handled");
         }
     }
 }
