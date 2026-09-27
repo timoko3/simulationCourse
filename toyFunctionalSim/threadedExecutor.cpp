@@ -11,6 +11,8 @@ struct ThreadedExecutor::Context {
     Cpu& cpu;
     Memory& memory;
 
+    BasicBlock block{};
+    std::size_t nextInstruction = 0;
     Instruction instr{};
     Handler nextHandler = nullptr;
 };
@@ -60,15 +62,12 @@ void ThreadedExecutor::run(Cpu& cpu, Memory& memory)
 
 void ThreadedExecutor::prepareNext(Context& ctx)
 {
-    const Word raw = ctx.cpu.getSimplePipeline().fetch_.instrFetch(
-        ctx.memory,
-        ctx.cpu.getState().pc);
+    if (ctx.nextInstruction == ctx.block.size()) {
+        ctx.block = ctx.cpu.getBasicBlock(ctx.memory, ctx.cpu.getState().pc);
+        ctx.nextInstruction = 0;
+    }
 
-    ctx.instr = ctx.cpu.getICache().lookupUpdate(
-        raw,
-        [&ctx](const Word& word) {
-            return ctx.cpu.getSimplePipeline().decode_.instrDecode(word);
-        });
+    ctx.instr = ctx.block.at(ctx.nextInstruction++);
     
     const auto index = static_cast<std::size_t>(ctx.instr.instrKind);
     const Handler handler = handlersTable_.at(index);

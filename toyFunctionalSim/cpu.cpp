@@ -4,14 +4,19 @@ namespace simulator{
 
 void
 Cpu::stepBlock(Memory& memory){
-    BasicBlock curBasicBlock = iCache_.lookupUpdate(state_.pc,     
-                                                    [this, &memory](Addr startPc) {
-                                                        return createBasicBlock(memory, startPc);
-                                                    });
+    BasicBlock curBasicBlock = getBasicBlock(memory, state_.pc);
 
     for(auto instr : curBasicBlock){
         simpPipeline_.exec_.execInstr(state_, memory, instr);
     }
+}
+
+BasicBlock 
+Cpu::getBasicBlock(Memory& memory, Addr startPc) {
+    return iCache_.lookupUpdate(startPc, 
+                                [this, &memory](Addr pc) {
+                                    return createBasicBlock(memory, pc);
+                                });
 }
 
 BasicBlock Cpu::createBasicBlock(Memory& memory, Addr startPc) {
