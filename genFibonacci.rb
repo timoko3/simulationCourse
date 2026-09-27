@@ -7,16 +7,17 @@ asm("tests/fibonacci.bin") do
     LI x3, 0 
     LI x4, 0
 
-    BEQ x1, x4, 14
+    BEQ x1, x4, :End
 
     LI x3, 1
     LI x4, 1
 
-    BEQ x1, x4, 11
+    BEQ x1, x4, :End
 
     LI x4, 1
     LI x6, 1024
 
+    LABEL :Start
     BEQ x4, x1, 8
         ADD x5, x2, x3
         ST x3, x6
@@ -24,7 +25,8 @@ asm("tests/fibonacci.bin") do
         ST x5, x6
         LD x3, x6
         ADDI x4, x4, 1
-        J 10
+        J :Start
+    LABEL :End
     LI x9, 60
     SYSCALL 0 
 end 

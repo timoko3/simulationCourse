@@ -1,9 +1,12 @@
 require_relative 'cpuArchitecture'
+require_relative 'interAsm'
 
 class Generator
     include RegFile
     include Isa
     include InstructionEncoding
+
+    include InterAsmConstructions
 
     def initialize
         @instructions = []
