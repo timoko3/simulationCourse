@@ -118,6 +118,8 @@ DEFINE_MEMORY_HANDLER(Ldp)
 void ThreadedExecutor::handleSyscall(Context* ctx){    
     ctx->cpu.getSimplePipeline().exec_.execSyscall(
         ctx->cpu.getState(), ctx->instr);
+    prepareNext(*ctx);
+    [[clang::musttail]] return ctx->nextHandler(ctx);
 }
 
 }

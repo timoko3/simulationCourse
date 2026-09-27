@@ -4,7 +4,9 @@
 
 namespace simulator{
 
-constexpr uint32_t SYSCALL_EXIT = 60;
+enum SyscallType : uint32_t {
+    SYSCALL_EXIT = 60,
+};
 
 struct SimSyscall{
     uint32_t type;

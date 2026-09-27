@@ -3,10 +3,13 @@
 #include "memory.hpp"
 #include "cpuState.hpp"
 #include "isa/isa.hpp"
+#include "syscallHandlers.hpp"
 
 namespace simulator{
 
 class ExecStage{
+
+    SyscallHandlers syscallHandlers_;
 
     void requireAligned(Addr addr);
 

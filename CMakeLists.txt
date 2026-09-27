@@ -49,6 +49,7 @@ add_library(simulator_core STATIC
     toyFunctionalSim/simplePipeline/fetchStage.cpp
     toyFunctionalSim/simplePipeline/decodeStage.cpp
     toyFunctionalSim/simplePipeline/execStage.cpp
+    toyFunctionalSim/simplePipeline/syscallHandlers.cpp
 )
 
 target_compile_features(simulator_core PUBLIC cxx_std_17)

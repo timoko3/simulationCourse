@@ -1,5 +1,4 @@
 #include "execStage.hpp"
-#include "syscall.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -194,7 +193,8 @@ ExecStage::execJ(CpuState& state, Instruction instr){
 
 void
 ExecStage::execSyscall(CpuState& state, Instruction instr){
-    throw SimSyscall{state.getReg(SYSCALL_NUM_REG), instr.src1};
+    syscallHandlers_.handle(state, instr.src1);
+    state.pc += sizeof(Word);
 }
 
 void
