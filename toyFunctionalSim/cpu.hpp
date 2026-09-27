@@ -14,19 +14,16 @@ namespace simulator{
 
 constexpr size_t I_CACHE_SIZE = 64;
 
-enum stepResult{
-    SR_NORMAL,
-    SR_SYSCALL
-};
-
 class Cpu{
-    using iCache = cache::CacheLIRS<Instruction, Word>; 
+    using iCache = cache::CacheLIRS<BasicBlock, Addr>; 
 
     CpuState state_;
     SimplePipeline simpPipeline_;
     iCache iCache_{I_CACHE_SIZE};
+
+    BasicBlock createBasicBlock(Memory& memory, Addr startPc);
 public:
-    stepResult step(Memory& memory);
+    void stepBlock(Memory& memory);
 
     void run(Memory& memory);
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "definitions.hpp"
 
 namespace simulator{
@@ -52,5 +54,7 @@ struct Instruction {
     Word src1{}, src2{}, dst{};
     Word dst2{};
 };
+
+using BasicBlock = std::vector<Instruction>;
 
 }
