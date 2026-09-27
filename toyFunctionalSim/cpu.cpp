@@ -6,7 +6,7 @@ void
 Cpu::stepBlock(Memory& memory){
     BasicBlock curBasicBlock = getBasicBlock(memory, state_.pc);
 
-    for(auto instr : curBasicBlock){
+    for(const auto& instr : curBasicBlock){
         simpPipeline_.exec_.execInstr(state_, memory, instr);
     }
 }

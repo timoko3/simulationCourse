@@ -6,7 +6,7 @@
 namespace simulator{
 
 Instruction 
-DecodeStage::instrDecode(const Word& rawInstr){
+DecodeStage::instrDecode(Word rawInstr){
     Instruction instr{};
 
     Opcode opc = static_cast<Opcode>(extractor_.extractOpcode(rawInstr));
@@ -60,7 +60,7 @@ DecodeStage::instrDecode(const Word& rawInstr){
 }
 
 inline void 
-DecodeStage::decodeSpecial(const Word& rawInstr, Instruction& instr){
+DecodeStage::decodeSpecial(Word rawInstr, Instruction& instr){
     Funct6 funct6 = static_cast<Funct6>(extractor_.extractFunct6(rawInstr));
 
     switch (funct6){
@@ -89,7 +89,7 @@ DecodeStage::decodeSpecial(const Word& rawInstr, Instruction& instr){
 }
 
 inline void
-DecodeStage::decodeAdd(const Word& rawInstr, Instruction& instr){
+DecodeStage::decodeAdd(Word rawInstr, Instruction& instr){
     instr.instrKind = InstrKind::I_ADD;
 
     instr.src1 = extractor_.extractRs(rawInstr);
@@ -99,7 +99,7 @@ DecodeStage::decodeAdd(const Word& rawInstr, Instruction& instr){
 }
 
 inline void
-DecodeStage::decodeAddi(const Word& rawInstr, Instruction& instr){
+DecodeStage::decodeAddi(Word rawInstr, Instruction& instr){
     instr.instrKind = InstrKind::I_ADDI;
     instr.src1 = extractor_.extractRs(rawInstr);
     instr.src2 = extractor_.extractSignedImm(rawInstr);
@@ -107,7 +107,7 @@ DecodeStage::decodeAddi(const Word& rawInstr, Instruction& instr){
 }
 
 inline void
-DecodeStage::decodeBeq(const Word& rawInstr, Instruction& instr){
+DecodeStage::decodeBeq(Word rawInstr, Instruction& instr){
     instr.instrKind = InstrKind::I_BEQ;
     instr.src1 = extractor_.extractRs(rawInstr);
     instr.src2 = extractor_.extractRt(rawInstr);
@@ -115,7 +115,7 @@ DecodeStage::decodeBeq(const Word& rawInstr, Instruction& instr){
 }
 
 inline void
-DecodeStage::decodeBext(const Word& rawInstr, Instruction& instr){
+DecodeStage::decodeBext(Word rawInstr, Instruction& instr){
     instr.instrKind = InstrKind::I_BEXT;
     instr.src1 = extractor_.extractBextRs1(rawInstr);
     instr.src2 = extractor_.extractBextRs2(rawInstr);
@@ -123,7 +123,7 @@ DecodeStage::decodeBext(const Word& rawInstr, Instruction& instr){
 }
 
 inline void
-DecodeStage::decodeXor(const Word& rawInstr, Instruction& instr){
+DecodeStage::decodeXor(Word rawInstr, Instruction& instr){
     instr.instrKind = InstrKind::I_XOR;
 
     instr.src1 = extractor_.extractXorRs(rawInstr);
@@ -133,14 +133,14 @@ DecodeStage::decodeXor(const Word& rawInstr, Instruction& instr){
 }
 
 inline void
-DecodeStage::decodeCls(const Word& rawInstr, Instruction& instr){
+DecodeStage::decodeCls(Word rawInstr, Instruction& instr){
     instr.instrKind = InstrKind::I_CLS;
     instr.src1 = extractor_.extractClsRs(rawInstr);
     instr.dst = extractor_.extractClsRd(rawInstr);
 }
 
 inline void
-DecodeStage::decodeUsat(const Word& rawInstr, Instruction& instr){
+DecodeStage::decodeUsat(Word rawInstr, Instruction& instr){
     instr.instrKind = InstrKind::I_USAT;
     instr.src1 = extractor_.extractUsatRs(rawInstr);
     instr.src2 = extractor_.extractUsatImm(rawInstr);
@@ -148,7 +148,7 @@ DecodeStage::decodeUsat(const Word& rawInstr, Instruction& instr){
 }
 
 inline void
-DecodeStage::decodeLdReg(const Word& rawInstr, Instruction& instr){
+DecodeStage::decodeLdReg(Word rawInstr, Instruction& instr){
     instr.instrKind = InstrKind::I_LDREG;
     instr.src1 = extractor_.extractLdRegBase(rawInstr);
     instr.src2 = extractor_.extractLdRegRm(rawInstr);
@@ -156,7 +156,7 @@ DecodeStage::decodeLdReg(const Word& rawInstr, Instruction& instr){
 }
 
 inline void
-DecodeStage::decodeLd(const Word& rawInstr, Instruction& instr){
+DecodeStage::decodeLd(Word rawInstr, Instruction& instr){
     instr.instrKind = InstrKind::I_LD;
     instr.src1 = extractor_.extractRs(rawInstr);
     instr.src2 = extractor_.extractSignedImm(rawInstr, 14);
@@ -164,7 +164,7 @@ DecodeStage::decodeLd(const Word& rawInstr, Instruction& instr){
 }
 
 inline void
-DecodeStage::decodeSt(const Word& rawInstr, Instruction& instr){
+DecodeStage::decodeSt(Word rawInstr, Instruction& instr){
     instr.instrKind = InstrKind::I_ST;
     instr.src1 = extractor_.extractRs(rawInstr);
     instr.src2 = extractor_.extractRt(rawInstr);
@@ -172,7 +172,7 @@ DecodeStage::decodeSt(const Word& rawInstr, Instruction& instr){
 }
 
 inline void
-DecodeStage::decodeLdp(const Word& rawInstr, Instruction& instr){
+DecodeStage::decodeLdp(Word rawInstr, Instruction& instr){
     instr.instrKind = InstrKind::I_LDP;
     instr.src1 = extractor_.extractRs(rawInstr);
     instr.src2 = extractor_.extractSignedImm(rawInstr, 11);
@@ -181,7 +181,7 @@ DecodeStage::decodeLdp(const Word& rawInstr, Instruction& instr){
 }
 
 inline void
-DecodeStage::decodeSbit(const Word& rawInstr, Instruction& instr){
+DecodeStage::decodeSbit(Word rawInstr, Instruction& instr){
     instr.instrKind = InstrKind::I_SBIT;
     instr.src1 = extractor_.extractRt(rawInstr);
     instr.src2 = extractor_.extract(rawInstr, 5, 11);
@@ -189,7 +189,7 @@ DecodeStage::decodeSbit(const Word& rawInstr, Instruction& instr){
 }
 
 inline void
-DecodeStage::decodeLi(const Word& rawInstr, Instruction& instr){
+DecodeStage::decodeLi(Word rawInstr, Instruction& instr){
     instr.instrKind = InstrKind::I_LI;
 
     instr.src1 = extractor_.extractImm(rawInstr); 
@@ -198,14 +198,14 @@ DecodeStage::decodeLi(const Word& rawInstr, Instruction& instr){
 }
 
 inline void
-DecodeStage::decodeJ(const Word& rawInstr, Instruction& instr){
+DecodeStage::decodeJ(Word rawInstr, Instruction& instr){
     instr.instrKind = InstrKind::I_J;
 
     instr.src1 = extractor_.extractJIndex(rawInstr); 
 }
 
 inline void
-DecodeStage::decodeSyscall(const Word& rawInstr, Instruction& instr){
+DecodeStage::decodeSyscall(Word rawInstr, Instruction& instr){
     instr.instrKind = InstrKind::I_SYSCALL;
 
     instr.src1 = extractor_.extractSyscallCode(rawInstr);
@@ -220,7 +220,7 @@ void DecodeStage::requireField(
 }
 
 inline bool
-DecodeStage::checkField(const Word& rawInstr, int len, int off, Word refVal){
+DecodeStage::checkField(Word rawInstr, int len, int off, Word refVal){
     return extractor_.extract(rawInstr, len, off) == refVal;
 }
 

@@ -6,7 +6,7 @@
 namespace simulator{
 
 void
-ExecStage::execInstr(CpuState& state, Memory& memory, Instruction instr){
+ExecStage::execInstr(CpuState& state, Memory& memory, const Instruction& instr){
     switch (instr.instrKind){
         case InstrKind::I_ADD:
             execAdd(state, instr);
@@ -59,7 +59,7 @@ ExecStage::execInstr(CpuState& state, Memory& memory, Instruction instr){
 }
 
 void
-ExecStage::execAdd(CpuState& state, Instruction instr){
+ExecStage::execAdd(CpuState& state, const Instruction& instr){
     Register rs = state.getReg(instr.src1);
     Register rt = state.getReg(instr.src2);
 
@@ -69,13 +69,13 @@ ExecStage::execAdd(CpuState& state, Instruction instr){
 }
 
 void
-ExecStage::execAddi(CpuState& state, Instruction instr){
+ExecStage::execAddi(CpuState& state, const Instruction& instr){
     state.setReg(instr.dst, state.getReg(instr.src1) + instr.src2);
     state.pc += sizeof(Word);
 }
 
 void
-ExecStage::execBeq(CpuState& state, Instruction instr){
+ExecStage::execBeq(CpuState& state, const Instruction& instr){
     if (state.getReg(instr.src1) == state.getReg(instr.src2)) {
         state.pc += instr.dst << 2;
     } else {
@@ -84,7 +84,7 @@ ExecStage::execBeq(CpuState& state, Instruction instr){
 }
 
 void
-ExecStage::execBext(CpuState& state, Instruction instr){
+ExecStage::execBext(CpuState& state, const Instruction& instr){
     const Word value = state.getReg(instr.src1);
     const Word mask = state.getReg(instr.src2);
     Word result = 0;
@@ -104,7 +104,7 @@ ExecStage::execBext(CpuState& state, Instruction instr){
 }
 
 void
-ExecStage::execXor(CpuState& state, Instruction instr){
+ExecStage::execXor(CpuState& state, const Instruction& instr){
     Register rs = state.getReg(instr.src1);
     Register rt = state.getReg(instr.src2);
 
@@ -114,7 +114,7 @@ ExecStage::execXor(CpuState& state, Instruction instr){
 }
 
 void
-ExecStage::execCls(CpuState& state, Instruction instr){
+ExecStage::execCls(CpuState& state, const Instruction& instr){
     const Register value = state.getReg(instr.src1);
     Word count = 0;
 
@@ -127,7 +127,7 @@ ExecStage::execCls(CpuState& state, Instruction instr){
 }
 
 void
-ExecStage::execUsat(CpuState& state, Instruction instr){
+ExecStage::execUsat(CpuState& state, const Instruction& instr){
     const Word limit = (Word{1} << instr.src2) - 1;
     state.setReg(instr.dst, std::min(state.getReg(instr.src1), limit));
 
@@ -135,7 +135,7 @@ ExecStage::execUsat(CpuState& state, Instruction instr){
 }
 
 void
-ExecStage::execLdReg(CpuState& state, Memory& memory, Instruction instr){
+ExecStage::execLdReg(CpuState& state, Memory& memory, const Instruction& instr){
     const Addr addr = state.getReg(instr.src1) + state.getReg(instr.src2);
     requireAligned(addr);
 
@@ -145,7 +145,7 @@ ExecStage::execLdReg(CpuState& state, Memory& memory, Instruction instr){
 }
 
 void
-ExecStage::execLd(CpuState& state, Memory& memory, Instruction instr){
+ExecStage::execLd(CpuState& state, Memory& memory, const Instruction& instr){
     const Addr addr = state.getReg(instr.src1) + instr.src2;
     requireAligned(addr);
     state.setReg(instr.dst, memory.read32(addr));
@@ -153,7 +153,7 @@ ExecStage::execLd(CpuState& state, Memory& memory, Instruction instr){
 }
 
 void
-ExecStage::execSt(CpuState& state, Memory& memory, Instruction instr){
+ExecStage::execSt(CpuState& state, Memory& memory, const Instruction& instr){
     const Addr addr = state.getReg(instr.src1) + instr.dst;
     requireAligned(addr);
     memory.write32(addr, state.getReg(instr.src2));
@@ -161,7 +161,7 @@ ExecStage::execSt(CpuState& state, Memory& memory, Instruction instr){
 }
 
 void
-ExecStage::execLdp(CpuState& state, Memory& memory, Instruction instr){
+ExecStage::execLdp(CpuState& state, Memory& memory, const Instruction& instr){
     const Addr addr = state.getReg(instr.src1) + instr.src2;
     requireAligned(addr);
     const Addr nextAddr = addr + Word{4};
@@ -173,26 +173,26 @@ ExecStage::execLdp(CpuState& state, Memory& memory, Instruction instr){
 }
 
 void
-ExecStage::execSbit(CpuState& state, Instruction instr){
+ExecStage::execSbit(CpuState& state, const Instruction& instr){
     state.setReg(instr.dst, Word{1} << instr.src2);
     state.pc += sizeof(Word);
 }
 
 void
-ExecStage::execLi(CpuState& state, Instruction instr){
+ExecStage::execLi(CpuState& state, const Instruction& instr){
     state.setReg(instr.dst, instr.src1);
 
     state.pc += sizeof(Word);
 }
 
 void
-ExecStage::execJ(CpuState& state, Instruction instr){
+ExecStage::execJ(CpuState& state, const Instruction& instr){
 
     state.pc = (state.pc & 0xF0000000) | (instr.src1 << 2);
 }
 
 void
-ExecStage::execSyscall(CpuState& state, Instruction instr){
+ExecStage::execSyscall(CpuState& state, const Instruction& instr){
     syscallHandlers_.handle(state, instr.src1);
     state.pc += sizeof(Word);
 }
