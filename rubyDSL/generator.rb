@@ -1,6 +1,8 @@
 require_relative 'cpuArchitecture'
 require_relative 'interAsm'
 
+require_relative 'elf/elfBuilder'
+
 class Generator
     include RegFile
     include Isa
@@ -11,6 +13,7 @@ class Generator
     def initialize
         @instructions = []
         @output = []
+        @outputElf = []
     end
 
     def generate
@@ -19,8 +22,22 @@ class Generator
         end
     end
 
+    def makeOutputElf(load_address:)
+        @outputElf = Elf::ElfBuilder.new(
+            load_address: load_address
+        ).build(getOutput)
+    end 
+
     def save(path)
         File.binwrite(path, @output.pack("V*"))
+    end
+
+    def saveElf(path)
+        File.binwrite(path, @outputElf)
+    end
+
+    def getOutput
+        @output.pack("V*")
     end
 
 private

@@ -1,12 +1,15 @@
 require_relative 'generator'
 
-def asm(outputPath = "test.bin", &block)
+def assembleElf(outputPath = "test.elf", &block)
     generator = Generator.new
 
     generator.instance_eval(&block)
     
     generator.replaceLabels
-
+    
     generator.generate
-    generator.save(outputPath)
+
+    generator.makeOutputElf(load_address: 0x1000)
+
+    generator.saveElf(outputPath)
 end 
