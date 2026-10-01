@@ -22,9 +22,9 @@ class Generator
         end
     end
 
-    def makeOutputElf(load_address:)
+    def makeOutputElf(loadAddress:)
         @outputElf = Elf::ElfBuilder.new(
-            load_address: load_address
+            loadAddress: loadAddress
         ).build(getOutput)
     end 
 

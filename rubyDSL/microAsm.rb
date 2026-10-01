@@ -9,7 +9,7 @@ def assembleElf(outputPath = "test.elf", &block)
     
     generator.generate
 
-    generator.makeOutputElf(load_address: 0x1000)
+    generator.makeOutputElf(loadAddress: 0x1000)
 
     generator.saveElf(outputPath)
 end 

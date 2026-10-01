@@ -59,5 +59,34 @@ module Elf
                 READ = 4
             end
         end
+
+        module SectionHeader
+            COUNT = 3
+            STRING_TABLE_INDEX = 2
+
+            module Format64
+                SIZE = 64
+                FIELDS_FORMAT = "%<word>s2%<xword>s4%<word>s2%<xword>s2".freeze
+            end
+
+            module Type
+                NULL = 0
+                PROGBITS = 1
+                STRTAB = 3
+                NOBITS = 8
+            end
+
+            module Flag
+                WRITE = 0x1
+                ALLOC = 0x2
+                EXECUTE = 0x4
+            end
+
+            module Name
+                TABLE = "\0.text\0.shstrtab\0".b.freeze
+                TEXT_OFFSET = TABLE.index(".text")
+                SHSTRTAB_OFFSET = TABLE.index(".shstrtab")
+            end
+        end
     end
 end

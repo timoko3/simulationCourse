@@ -2,43 +2,66 @@ require_relative "elfConstants"
 
 module Elf
     class ElfBuilder
-        def initialize(load_address:, endian: :little)
-            @load_address = load_address
-            configure_endian(endian)
+        def initialize(loadAddress:, endian: :little)
+            @loadAddress = loadAddress
+            configureEndian(endian)
         end
 
         def build(code)
+            headersEnd = Constants::Header::Format64::SIZE +
+                         Constants::ProgramHeader::Format64::SIZE
+            
+            sectionTableOffset = headersEnd
+            sectionTableSize = Constants::SectionHeader::COUNT *
+                               Constants::SectionHeader::Format64::SIZE
+            
             code = code.b
-            code_offset = Constants::Header::Format64::SIZE +
-                          Constants::ProgramHeader::Format64::SIZE
-            file_size = code_offset + code.bytesize
+            codeOffset = headersEnd + sectionTableSize
 
-            build_elf_header(code_offset) + build_program_header(file_size) + code
+            stringTable = Constants::SectionHeader::Name::TABLE
+            stringTableOffset = codeOffset + code.bytesize
+            
+            segmentFileSize = stringTableOffset
+
+            buildElfHeader(
+                codeOffset,
+                sectionTableOffset: sectionTableOffset,
+                sectionCount: Constants::SectionHeader::COUNT
+            ) +
+            buildProgramHeader(segmentFileSize) +
+            buildSectionHeaders(
+                codeOffset: codeOffset,
+                codeSize: code.bytesize,
+                stringTableOffset: stringTableOffset,
+                stringTableSize: stringTable.bytesize
+            ) +
+            code +
+            stringTable
         end
 
     private
-        def configure_endian(endian)
+        def configureEndian(endian)
             case endian
                 when :little
-                    @word_format = "V"
-                    @half_format = "v"
-                    @xword_format = "Q<"
-                    @data_encoding = Constants::Header::Data::LITTLE_ENDIAN
+                    @wordFormat = "V"
+                    @halfFormat = "v"
+                    @xwordFormat = "Q<"
+                    @dataEncoding = Constants::Header::Data::LITTLE_ENDIAN
                 when :big
-                    @word_format = "N"
-                    @half_format = "n"
-                    @xword_format = "Q>"
-                    @data_encoding = Constants::Header::Data::BIG_ENDIAN
+                    @wordFormat = "N"
+                    @halfFormat = "n"
+                    @xwordFormat = "Q>"
+                    @dataEncoding = Constants::Header::Data::BIG_ENDIAN
                 else
                     raise ArgumentError, "Unsupported endian: #{endian.inspect}"
             end
         end
 
-        def build_elf_header(code_offset)
+        def buildElfHeader(codeOffset, sectionTableOffset:, sectionCount:)
             ident = Constants::Header::MAGIC +
                     [
                         Constants::Header::Class::ELF64,
-                        @data_encoding,
+                        @dataEncoding,
                         Constants::Header::Version::CURRENT,
                         Constants::Header::OsAbi::SYSTEM_V,
                         Constants::Header::OsAbiVersion::SYSTEM_V_VER
@@ -49,29 +72,29 @@ module Elf
                 Constants::Header::Type::EXEC,
                 Constants::Header::Machine::TIM_MACHINE,
                 Constants::Header::Version::CURRENT,
-                @load_address + code_offset,
+                @loadAddress + codeOffset,
                 Constants::Header::Format64::SIZE,
-                0,
+                sectionTableOffset,
                 0,
                 Constants::Header::Format64::SIZE,
                 Constants::ProgramHeader::Format64::SIZE,
                 Constants::ProgramHeader::COUNT,
-                0,
-                0,
-                0
+                Constants::SectionHeader::Format64::SIZE,
+                sectionCount,
+                Constants::SectionHeader::STRING_TABLE_INDEX
             ]
 
-            format = format(
+            packFormat = format(
                 Constants::Header::Format64::FIELDS_FORMAT,
-                half: @half_format,
-                word: @word_format,
-                xword: @xword_format
+                half: @halfFormat,
+                word: @wordFormat,
+                xword: @xwordFormat
             )
 
-            ident + fields.pack(format)
+            ident + fields.pack(packFormat)
         end
 
-        def build_program_header(file_size)
+        def buildProgramHeader(fileSize)
             permissions = Constants::ProgramHeader::Permission::READ |
                           Constants::ProgramHeader::Permission::EXECUTE
 
@@ -79,18 +102,101 @@ module Elf
                 Constants::ProgramHeader::Type::LOAD,
                 permissions,
                 0,
-                @load_address,
-                @load_address,
-                file_size,
-                file_size,
+                @loadAddress,
+                @loadAddress,
+                fileSize,
+                fileSize,
                 Constants::ProgramHeader::DEFAULT_ALIGNMENT
             ].pack(
                 format(
                     Constants::ProgramHeader::Format64::FIELDS_FORMAT,
-                    word: @word_format,
-                    xword: @xword_format
+                    word: @wordFormat,
+                    xword: @xwordFormat
                 )
             )
+        end
+
+        def buildSectionHeaders(
+            codeOffset:,
+            codeSize:,
+            stringTableOffset:,
+            stringTableSize:
+        )
+            nullHeader = buildSectionHeader(
+                nameOffset: 0,
+                type: Constants::SectionHeader::Type::NULL,
+                flags: 0,
+                address: 0,
+                offset: 0,
+                size: 0,
+                link: 0,
+                info: 0,
+                alignment: 0,
+                entrySize: 0
+            )
+
+            textHeader = buildSectionHeader(
+                nameOffset: Constants::SectionHeader::Name::TEXT_OFFSET,
+                type: Constants::SectionHeader::Type::PROGBITS,
+                flags: Constants::SectionHeader::Flag::ALLOC |
+                       Constants::SectionHeader::Flag::EXECUTE,
+                address: @loadAddress + codeOffset,
+                offset: codeOffset,
+                size: codeSize,
+                link: 0,
+                info: 0,
+                alignment: 4,
+                entrySize: 0
+            )
+
+            stringTableHeader = buildSectionHeader(
+                nameOffset: Constants::SectionHeader::Name::SHSTRTAB_OFFSET,
+                type: Constants::SectionHeader::Type::STRTAB,
+                flags: 0,
+                address: 0,
+                offset: stringTableOffset,
+                size: stringTableSize,
+                link: 0,
+                info: 0,
+                alignment: 1,
+                entrySize: 0
+            )
+
+            nullHeader + textHeader + stringTableHeader
+        end
+
+        def buildSectionHeader(
+            nameOffset:,
+            type:,
+            flags:,
+            address:,
+            offset:,
+            size:,
+            link:,
+            info:,
+            alignment:,
+            entrySize:
+        )
+            fields = [
+                nameOffset,
+                type,
+                flags,
+                address,
+                offset,
+                size,
+                link,
+                info,
+                alignment,
+                entrySize
+            ]
+
+            packFormat = format(
+                Constants::SectionHeader::Format64::FIELDS_FORMAT,
+                word: @wordFormat,
+                xword: @xwordFormat
+            )
+
+            fields.pack(packFormat)
         end
     end
 end
