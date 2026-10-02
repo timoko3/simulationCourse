@@ -1,6 +1,6 @@
 require_relative 'rubyDSL/microAsm'
 
-asm("tests/fibonacci.bin") do
+assembleElf("tests/fibonacci.elf") do
     LI x1, 5
 
     LI x2, 0
@@ -18,7 +18,7 @@ asm("tests/fibonacci.bin") do
     LI x6, 1024
 
     LABEL :Start
-    BEQ x4, x1, 8
+    BEQ x4, x1, :End
         ADD x5, x2, x3
         ST x3, x6
         LD x2, x6
