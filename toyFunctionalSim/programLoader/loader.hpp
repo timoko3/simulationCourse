@@ -1,6 +1,7 @@
 #pragma once 
 
 #include "memory.hpp"
+#include "cpuState.hpp"
 
 #include <filesystem>
 
@@ -10,7 +11,7 @@ class Loader{
 public: 
     virtual ~Loader() = default;
 
-    virtual void loadProgram(const std::filesystem::path& filePath, Memory& memory) = 0; 
+    virtual void loadProgram(const std::filesystem::path& filePath, Memory& memory, CpuState& state) = 0; 
 };
 
 }

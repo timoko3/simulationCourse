@@ -16,6 +16,8 @@ struct Memory{
 
     Word read32(Addr addr) const;
     void write32(Addr addr, Word word);
+    void loadData(Addr addr, const Byte* source, std::size_t byteCount);
+    void fillData(Addr addr, std::size_t byteCount, Byte value = 0);
 
     void writeProgram(const std::vector<Word>& program);
 };

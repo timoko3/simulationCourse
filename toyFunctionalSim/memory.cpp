@@ -1,5 +1,6 @@
 #include "memory.hpp"
 
+#include <algorithm>
 #include <cstring>
 #include <stdexcept>
 
@@ -26,6 +27,38 @@ void Memory::write32(Addr addr, Word word)
     }
 
     std::memcpy(data.data() + offset, &word, sizeof(word));
+}
+
+void Memory::loadData(Addr addr,
+                      const Byte* source,
+                      std::size_t byteCount){
+    const auto offset = static_cast<std::size_t>(addr);
+
+    if (offset > data.size() || byteCount > data.size() - offset) {
+        throw std::out_of_range("Memory data load out of bounds");
+    }
+
+    if (byteCount == 0) {
+        return;
+    }
+
+    if (source == nullptr) {
+        throw std::invalid_argument("Memory data source is null");
+    }
+
+    std::memcpy(data.data() + offset, source, byteCount);
+}
+
+void Memory::fillData(Addr addr,
+                      std::size_t byteCount,
+                      Byte value){
+    const auto offset = static_cast<std::size_t>(addr);
+
+    if (offset > data.size() || byteCount > data.size() - offset) {
+        throw std::out_of_range("Memory data fill out of bounds");
+    }
+
+    std::fill_n(data.begin() + offset, byteCount, value);
 }
 
 Word Memory::read32(Addr addr) const

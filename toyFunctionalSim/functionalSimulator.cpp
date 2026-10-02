@@ -16,12 +16,11 @@ FunctionalSimulator::FunctionalSimulator() : loader_(std::make_unique<ElfLoader>
 void
 FunctionalSimulator::loadProgram(const std::filesystem::path& filePath){
     if(!isProgLoaded()){
-        loader_->loadProgram(filePath, memory_);
+        loader_->loadProgram(filePath, memory_, cpu_.getState());
     }
     else {
         throw std::logic_error("program is already loaded.");
     }
-    cpu_.getState().pc = 0;
 
     isProgLoad = true;
 }
