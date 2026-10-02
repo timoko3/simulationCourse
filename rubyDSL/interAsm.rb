@@ -11,7 +11,7 @@ module InterAsmConstructions
         labels[name] = @instructions.length
     end
 
-    def replaceLabels
+    def replaceLabels(textAddress:)
         @instructions.each_with_index do |instruction, index|
         next unless [:J, :BEQ].include?(instruction.instrKind)
 
@@ -21,7 +21,11 @@ module InterAsmConstructions
             target = getLabelPos(operand)
 
             instruction.operands[operand_index] =
-            instruction.instrKind == :BEQ ? target - index : target
+            if instruction.instrKind == :BEQ
+                target - index
+            else
+                (textAddress + target * 4) >> 2
+            end
         end
         end
     end

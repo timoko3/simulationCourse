@@ -1,25 +1,19 @@
 require_relative "elfConstants"
+require_relative "elfLayout"
 
 module Elf
     class ElfBuilder
-        def initialize(loadAddress:, dataLoadAddress:, endian: :little)
-            @loadAddress = loadAddress
-            @dataLoadAddress = dataLoadAddress
+        def initialize(layout:, endian: :little)
+            @layout = layout
+            @loadAddress = layout.loadAddress
+            @dataLoadAddress = layout.dataLoadAddress
             configureEndian(endian)
         end
 
         def build(code, data: "".b)
-            headersEnd = Constants::Header::Format64::SIZE +
-                         Constants::ProgramHeader::COUNT *
-                         Constants::ProgramHeader::Format64::SIZE
-            
-            sectionTableOffset = headersEnd
-            sectionTableSize = Constants::SectionHeader::COUNT *
-                               Constants::SectionHeader::Format64::SIZE
-            
             code = code.b
             data = data.b
-            codeOffset = headersEnd + sectionTableSize
+            codeOffset = @layout.codeOffset
 
             textSegmentFileSize = codeOffset + code.bytesize
             dataOffset = alignUp(
@@ -37,7 +31,7 @@ module Elf
 
             buildElfHeader(
                 codeOffset,
-                sectionTableOffset: sectionTableOffset,
+                sectionTableOffset: @layout.sectionTableOffset,
                 sectionCount: Constants::SectionHeader::COUNT
             ) +
             buildProgramHeaders(
@@ -92,7 +86,7 @@ module Elf
                 Constants::Header::Type::EXEC,
                 Constants::Header::Machine::TIM_MACHINE,
                 Constants::Header::Version::CURRENT,
-                @loadAddress + codeOffset,
+                @layout.textAddress,
                 Constants::Header::Format64::SIZE,
                 sectionTableOffset,
                 0,
@@ -183,7 +177,7 @@ module Elf
                 type: Constants::SectionHeader::Type::PROGBITS,
                 flags: Constants::SectionHeader::Flag::ALLOC |
                        Constants::SectionHeader::Flag::EXECUTE,
-                address: @loadAddress + codeOffset,
+                address: @layout.textAddress,
                 offset: codeOffset,
                 size: codeSize,
                 link: 0,

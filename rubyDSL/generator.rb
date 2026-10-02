@@ -24,10 +24,9 @@ class Generator
         end
     end
 
-    def makeOutputElf(loadAddress:, dataLoadAddress:)
+    def makeOutputElf(layout:)
         @outputElf = Elf::ElfBuilder.new(
-            loadAddress: loadAddress,
-            dataLoadAddress: dataLoadAddress
+            layout: layout
         ).build(getOutput, data: getDataOutput)
     end
 
