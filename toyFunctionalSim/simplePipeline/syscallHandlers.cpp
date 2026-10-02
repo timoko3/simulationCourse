@@ -10,7 +10,7 @@ void SyscallHandlers::handle(CpuState& state, Word code) {
     const Word type = state.getReg(SYSCALL_NUM_REG);
     switch (type) {
         case SYSCALL_EXIT:
-            throw SimSyscall{type, code};
+            throw ExitSyscall{type, code};
         default:
             std::cerr << "syscall with " << type << " not handled\n";
             return;

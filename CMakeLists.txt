@@ -5,6 +5,17 @@ project(SimCourse
     LANGUAGES CXX
 )
 
+include(FetchContent)
+
+FetchContent_Declare(
+    elfio
+    GIT_REPOSITORY https://github.com/serge1/ELFIO.git
+    GIT_TAG        Release_3.12
+    GIT_SHALLOW    TRUE
+)
+
+FetchContent_MakeAvailable(elfio)
+
 option(
     THREADED_DISPATCH
     "Enable threaded dispatch using clang::musttail"
@@ -46,6 +57,8 @@ add_library(simulator_core STATIC
     toyFunctionalSim/memory.cpp
     toyFunctionalSim/functionalSimulator.cpp
 
+    toyFunctionalSim/programLoader/elfLoader.cpp
+
     toyFunctionalSim/simplePipeline/fetchStage.cpp
     toyFunctionalSim/simplePipeline/decodeStage.cpp
     toyFunctionalSim/simplePipeline/execStage.cpp
@@ -77,7 +90,7 @@ target_include_directories(simulator_core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/toyFunctionalSim"
 )
 
-target_link_libraries(simulator_core PUBLIC isa)
+target_link_libraries(simulator_core PUBLIC isa PRIVATE elfio::elfio)
 
 # Application entry point.
 add_executable(simcourse main.cpp)

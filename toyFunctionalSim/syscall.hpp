@@ -8,7 +8,7 @@ enum SyscallType : uint32_t {
     SYSCALL_EXIT = 60,
 };
 
-struct SimSyscall{
+struct ExitSyscall{
     uint32_t type;
     uint32_t code; 
 };

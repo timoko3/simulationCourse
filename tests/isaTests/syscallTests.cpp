@@ -14,9 +14,9 @@ TEST_F(IsaSyscallTest, PassesTypeAndCodeToHandler)
 
     try {
         execute(instruction);
-        FAIL() << "Expected SimSyscall";
+        FAIL() << "Expected ExitSyscall";
     }
-    catch (const simulator::SimSyscall& syscall) {
+    catch (const simulator::ExitSyscall& syscall) {
         EXPECT_EQ(syscall.type, syscallType);
         EXPECT_EQ(syscall.code, 42u);
     }
@@ -37,9 +37,9 @@ TEST_F(IsaSyscallTest, FetchesDecodesAndExecutes)
 
     try {
         execute(instr);
-        FAIL() << "Expected SimSyscall";
+        FAIL() << "Expected ExitSyscall";
     }
-    catch (const simulator::SimSyscall& syscall) {
+    catch (const simulator::ExitSyscall& syscall) {
         EXPECT_EQ(syscall.type, syscallType);
         EXPECT_EQ(syscall.code, 5u);
     }

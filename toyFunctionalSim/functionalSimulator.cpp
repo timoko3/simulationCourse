@@ -6,14 +6,17 @@
 
 #include "syscall.hpp"
 
+#include "programLoader/elfLoader.hpp"
 
 namespace simulator
 {
 
+FunctionalSimulator::FunctionalSimulator() : loader_(std::make_unique<ElfLoader>()){}
+
 void
-FunctionalSimulator::loadProgram(const std::vector<Word>& program){
+FunctionalSimulator::loadProgram(const std::filesystem::path& filePath){
     if(!isProgLoaded()){
-        memory_.writeProgram(program);
+        loader_->loadProgram(filePath, memory_);
     }
     else {
         throw std::logic_error("program is already loaded.");
@@ -32,7 +35,7 @@ FunctionalSimulator::runSimulation(){
     try {
         cpu_.run(memory_);
     }
-    catch (const SimSyscall& syscall) {
+    catch (const ExitSyscall& syscall) {
         if(syscall.type == SYSCALL_EXIT){
             std::cout << "Program exited with code "
                 << syscall.code << '\n';

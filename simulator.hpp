@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vector>
+#include <filesystem>
 
 #include "isa/definitions.hpp"
 
@@ -10,7 +10,7 @@ class Simulator{
 public:
     virtual void runSimulation() = 0;
 
-    virtual void loadProgram(const std::vector<Word>& program) = 0;
+    virtual void loadProgram(const std::filesystem::path& progFilePath) = 0;
 };
 
 }
