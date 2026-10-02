@@ -1,6 +1,8 @@
 require_relative 'rubyDSL/microAsm'
 
 assembleElf("tests/fibonacci.elf") do
+    temporary = DATA_WORD 0
+
     LI x1, 5
 
     LI x2, 0
@@ -15,7 +17,7 @@ assembleElf("tests/fibonacci.elf") do
     BEQ x1, x4, :End
 
     LI x4, 1
-    LI x6, 1024
+    LI x6, temporary
 
     LABEL :Start
     BEQ x4, x1, :End

@@ -41,7 +41,7 @@ module Elf
         end
 
         module ProgramHeader
-            COUNT = 1
+            COUNT = 2
             DEFAULT_ALIGNMENT = 0x1000
 
             module Format64
@@ -61,8 +61,8 @@ module Elf
         end
 
         module SectionHeader
-            COUNT = 3
-            STRING_TABLE_INDEX = 2
+            COUNT = 4
+            STRING_TABLE_INDEX = 3
 
             module Format64
                 SIZE = 64
@@ -83,10 +83,16 @@ module Elf
             end
 
             module Name
-                TABLE = "\0.text\0.shstrtab\0".b.freeze
+                TABLE = "\0.text\0.data\0.shstrtab\0".b.freeze
                 TEXT_OFFSET = TABLE.index(".text")
+                DATA_OFFSET = TABLE.index(".data")
                 SHSTRTAB_OFFSET = TABLE.index(".shstrtab")
             end
+        end
+
+        module MemoryMap
+            CODE_BASE = 0x1000
+            DATA_BASE = 0x2000
         end
     end
 end

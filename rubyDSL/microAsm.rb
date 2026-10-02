@@ -9,7 +9,10 @@ def assembleElf(outputPath = "test.elf", &block)
     
     generator.generate
 
-    generator.makeOutputElf(loadAddress: 0x1000)
+    generator.makeOutputElf(
+        loadAddress: Elf::Constants::MemoryMap::CODE_BASE,
+        dataLoadAddress: Elf::Constants::MemoryMap::DATA_BASE
+    )
 
     generator.saveElf(outputPath)
 end 

@@ -1,5 +1,6 @@
 require_relative 'cpuArchitecture'
 require_relative 'interAsm'
+require_relative 'dataAsm'
 
 require_relative 'elf/elfBuilder'
 
@@ -9,6 +10,7 @@ class Generator
     include InstructionEncoding
 
     include InterAsmConstructions
+    include DataAsmConstructions
 
     def initialize
         @instructions = []
@@ -22,11 +24,12 @@ class Generator
         end
     end
 
-    def makeOutputElf(loadAddress:)
+    def makeOutputElf(loadAddress:, dataLoadAddress:)
         @outputElf = Elf::ElfBuilder.new(
-            loadAddress: loadAddress
-        ).build(getOutput)
-    end 
+            loadAddress: loadAddress,
+            dataLoadAddress: dataLoadAddress
+        ).build(getOutput, data: getDataOutput)
+    end
 
     def save(path)
         File.binwrite(path, @output.pack("V*"))
