@@ -20,29 +20,7 @@ ElfLoader::loadProgram(const std::filesystem::path& filePath, Memory& memory, Cp
 
     state.pc = elf.get_entry();
 
-    std::cout << elf.get_entry() << '\n';
-
     for (const auto& segment : elf.segments){
-        std::cout
-        << "index=" << segment->get_index()
-        << ", type=" << segment->get_type()
-        << ", offset=0x" << std::hex
-        << segment->get_offset()
-        << ", virtual address=0x"
-        << segment->get_virtual_address()
-        << ", physical address=0x"
-        << segment->get_physical_address()
-        << ", file size=0x"
-        << segment->get_file_size()
-        << ", memory size=0x"
-        << segment->get_memory_size()
-        << ", flags=0x"
-        << segment->get_flags()
-        << ", alignment=0x"
-        << segment->get_align()
-        << std::dec
-        << '\n';
-
         if(segment->get_type() == ELFIO::PT_LOAD){
             loadSegment(*segment, memory);
         }

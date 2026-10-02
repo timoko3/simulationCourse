@@ -36,9 +36,9 @@ add_executable(simcourse_tests
 
 target_compile_features(simcourse_tests PRIVATE cxx_std_17)
 
-configure_file(fibonacci.bin fibonacci.bin COPYONLY)
+configure_file(fibonacci.elf fibonacci.elf COPYONLY)
 target_compile_definitions(simcourse_tests PRIVATE
-    FIBONACCI_BINARY_PATH="${CMAKE_CURRENT_BINARY_DIR}/fibonacci.bin"
+    FIBONACCI_ELF_PATH="${CMAKE_CURRENT_BINARY_DIR}/fibonacci.elf"
 )
 
 target_link_libraries(simcourse_tests PRIVATE
