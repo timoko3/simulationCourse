@@ -108,6 +108,8 @@
             inputsFrom = [ (packagesFor system).default ];
             packages = [
               pkgs.git
+              pkgs.python3
+              pkgs.ruby
               pkgs.llvmPackages.clang-tools
               pkgs.nixfmt
             ];
