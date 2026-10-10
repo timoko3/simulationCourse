@@ -1,22 +1,33 @@
 #include <cstdlib>
 #include <exception>
 #include <iostream>
+#include <string>
 
-#include "generalFunctions/file.h"
-#include "isa/definitions.hpp"
+#include <CLI/CLI.hpp>
+
+#include "toyFunctionalSim/dispatchMode.hpp"
 #include "toyFunctionalSim/functionalSimulator.hpp"
 
 int main(int argc, char* argv[])
 {
-    if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <program.elf>\n";
-        return EXIT_FAILURE;
+    CLI::App app{"Functional ISA simulator"};
+    std::string programPath;
+    bool threaded = false;
+    app.add_option("program", programPath, "ELF program")->required();
+    app.add_flag("--threaded", threaded, "Use threaded dispatch (requires clang::musttail)");
+
+    try {
+        app.parse(argc, argv);
+    }
+    catch (const CLI::ParseError& error) {
+        return app.exit(error);
     }
 
     try {
-        simulator::FunctionalSimulator sim;
+        const auto mode = threaded ? simulator::DispatchMode::Threaded : simulator::DispatchMode::Switch;
+        simulator::FunctionalSimulator sim{mode};
 
-        sim.loadProgram(argv[1]);
+        sim.loadProgram(programPath);
         sim.runSimulation();
 
         return EXIT_SUCCESS;

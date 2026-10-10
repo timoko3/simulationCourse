@@ -13,9 +13,12 @@ Cpu::stepBlock(Memory& memory){
 
 BasicBlock 
 Cpu::getBasicBlock(Memory& memory, Addr startPc) {
+    // The cache copies the loaded block before this local storage expires.
+    BasicBlock loadedBlock;
     return iCache_.lookupUpdate(startPc, 
-                                [this, &memory](Addr pc) {
-                                    return createBasicBlock(memory, pc);
+                                [this, &memory, &loadedBlock](Addr pc) -> const BasicBlock& {
+                                    loadedBlock = createBasicBlock(memory, pc);
+                                    return loadedBlock;
                                 });
 }
 
