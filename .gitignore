@@ -1,3 +1,9 @@
 build/
 *.bin
 !tests/fibonacci.bin
+
+# Nix build outputs and local developer configuration.
+/result
+/result-*
+/.direnv/
+/CMakeUserPresets.json

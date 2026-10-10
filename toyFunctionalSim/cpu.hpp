@@ -8,7 +8,9 @@
 #include "memory.hpp"
 #include "simplePipeline/simplePipeline.hpp"
 
-#include "cacheResearch/cache.h"
+#include "dispatchMode.hpp"
+
+#include <cache/cacheLIRS.h>
 
 namespace simulator{
 
@@ -27,7 +29,7 @@ public:
 
     void stepBlock(Memory& memory);
 
-    void run(Memory& memory);
+    void run(Memory& memory, DispatchMode dispatchMode);
 
     CpuState& getState(){ return state_; }
     const CpuState& getState() const { return state_; }

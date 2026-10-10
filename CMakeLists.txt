@@ -7,38 +7,42 @@ project(SimCourse
 
 include(FetchContent)
 
-FetchContent_Declare(
-    elfio
-    GIT_REPOSITORY https://github.com/serge1/ELFIO.git
-    GIT_TAG        Release_3.12
-    GIT_SHALLOW    TRUE
-)
+find_package(CLI11 2.6.2 CONFIG QUIET)
+if(NOT TARGET CLI11::CLI11)
+    FetchContent_Declare(cli11
+        URL https://codeload.github.com/CLIUtils/CLI11/tar.gz/refs/tags/v2.6.2
+        URL_HASH SHA256=c6ea6b2e5608b3ea8617999bd5f47420c71b2ebdb8dc4767c1034d1da5785711
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    )
+    FetchContent_MakeAvailable(cli11)
+endif()
 
-FetchContent_MakeAvailable(elfio)
+find_package(elfio 3.12 CONFIG QUIET)
+if(NOT TARGET elfio::elfio)
+    FetchContent_Declare(elfio
+        URL https://codeload.github.com/serge1/ELFIO/tar.gz/8ae6cec5d60495822ecd57d736f66149da9b1830
+        URL_HASH SHA256=71c1a72e3fac6c9db3d4126c8f9b84bbda902e8dfb563f6dfcbed454636fa1c5
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    )
+    FetchContent_MakeAvailable(elfio)
+endif()
 
-option(
-    THREADED_DISPATCH
-    "Enable threaded dispatch using clang::musttail"
-    OFF
-)
+find_package(CacheResearch 0.1 CONFIG QUIET)
+if(NOT TARGET CacheResearch::cache)
+    # Consume only the library, without the upstream tools or test suite.
+    set(CACHE_RESEARCH_BUILD_APP OFF)
+    set(CACHE_RESEARCH_BUILD_BENCHMARKS OFF)
+    set(CACHE_RESEARCH_BUILD_TESTS OFF)
+    set(CACHE_RESEARCH_INSTALL OFF)
+    FetchContent_Declare(cache_research
+        URL https://codeload.github.com/timoko3/cacheResearch/tar.gz/53b2af70a56335489c8d00565a5228f0bbc06f28
+        URL_HASH SHA256=e77e974b1fd235feff88a0832e035dca8a22af596b9d17e4308da4938ab0e592
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    )
+    FetchContent_MakeAvailable(cache_research)
+endif()
 
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-# Common utilities (sources from the generalFunctions submodule).
-add_library(general_functions STATIC
-    generalFunctions/file.cpp
-    generalFunctions/logger.cpp
-)
-
-add_library(cache INTERFACE
-    cacheResearch/cache.h)
-
-
-target_compile_features(general_functions PUBLIC cxx_std_17)
-
-target_include_directories(general_functions PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}"
-)
 
 # Instruction representation and decoding helpers.
 add_library(isa STATIC
@@ -54,6 +58,7 @@ target_include_directories(isa PUBLIC
 # Simulator implementation, reusable by applications and tests.
 add_library(simulator_core STATIC
     toyFunctionalSim/cpu.cpp
+    toyFunctionalSim/cpuRun.cpp
     toyFunctionalSim/memory.cpp
     toyFunctionalSim/functionalSimulator.cpp
 
@@ -67,44 +72,50 @@ add_library(simulator_core STATIC
 
 target_compile_features(simulator_core PUBLIC cxx_std_17)
 
-if(THREADED_DISPATCH)
-    if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        message(FATAL_ERROR
-            "THREADED_DISPATCH requires Clang. "
-            "Select Clang or set THREADED_DISPATCH=OFF."
-        )
-    endif()
+include(CheckCXXSourceCompiles)
+check_cxx_source_compiles([=[
+    #ifndef __has_cpp_attribute
+    #error Attribute detection is unavailable
+    #endif
+    #if !__has_cpp_attribute(clang::musttail)
+    #error clang::musttail is unavailable
+    #endif
+    void next(void*) {}
+    void step(void* context) {
+        [[clang::musttail]] return next(context);
+    }
+    int main() { step(nullptr); }
+]=] SIMCOURSE_HAS_MUSTTAIL)
 
-    target_sources(simulator_core PRIVATE
-        toyFunctionalSim/cpuRunThreaded.cpp
-        toyFunctionalSim/threadedExecutor.cpp
-    )
-else()
-    target_sources(simulator_core PRIVATE
-        toyFunctionalSim/cpuRunSwitch.cpp
-    )
+if(SIMCOURSE_HAS_MUSTTAIL)
+    target_sources(simulator_core PRIVATE toyFunctionalSim/threadedExecutor.cpp)
 endif()
+target_compile_definitions(simulator_core PRIVATE
+    SIMCOURSE_HAS_MUSTTAIL=$<BOOL:${SIMCOURSE_HAS_MUSTTAIL}>
+)
 
 target_include_directories(simulator_core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/toyFunctionalSim"
 )
 
-target_link_libraries(simulator_core PUBLIC isa PRIVATE elfio::elfio)
+target_link_libraries(simulator_core
+    PUBLIC isa CacheResearch::cache
+    PRIVATE elfio::elfio
+)
 
 # Application entry point.
 add_executable(simcourse main.cpp)
 
 target_compile_features(simcourse PRIVATE cxx_std_17)
 
-target_link_libraries(simcourse PRIVATE
-    simulator_core
-    general_functions
-)
+target_link_libraries(simcourse PRIVATE simulator_core CLI11::CLI11)
+
+include(GNUInstallDirs)
+install(TARGETS simcourse RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 
 # Keep warning policy local to the project's targets.
 foreach(target IN ITEMS
-    general_functions
     isa
     simulator_core
     simcourse

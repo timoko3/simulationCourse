@@ -3,6 +3,7 @@
 #include "simulator.hpp"
 
 #include "cpu.hpp"
+#include "dispatchMode.hpp"
 #include "memory.hpp"
 
 #include "programLoader/loader.hpp"
@@ -15,12 +16,13 @@ class FunctionalSimulator : public Simulator{
 private:
     Cpu cpu_;
     Memory memory_;
+    DispatchMode dispatchMode_;
 
     std::unique_ptr<Loader> loader_;
 
     bool isProgLoad = 0;
 public:
-    FunctionalSimulator();
+    explicit FunctionalSimulator(DispatchMode mode = DispatchMode::Switch);
 
     void runSimulation() override;
 
