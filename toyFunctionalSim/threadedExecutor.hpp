@@ -26,7 +26,8 @@ private:
 
     static const HandlerTable handlersTable_;
 
-    static void prepareNext(Context& ctx);
+    static void loadNextBlock(Context& ctx);
+    static Handler prepareNext(Context& ctx);
     static void handleAdd(Context* ctx);
     static void handleAddi(Context* ctx);
     static void handleBeq(Context* ctx);
