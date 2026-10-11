@@ -28,6 +28,7 @@ private:
 
     static void loadNextBlock(Context& ctx);
     static Handler prepareNext(Context& ctx);
+    static Handler handlerFor(InstrKind kind);
     static void handleAdd(Context* ctx);
     static void handleAddi(Context* ctx);
     static void handleBeq(Context* ctx);

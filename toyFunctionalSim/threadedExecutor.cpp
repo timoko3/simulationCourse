@@ -11,11 +11,8 @@ struct ThreadedExecutor::Context {
     Cpu& cpu;
     Memory& memory;
 
-    // Instructions belong to the cache. No cache lookup occurs while executing
-    // a block; refresh all cursors after the next lookup, which may evict it.
-    const Instruction* instr = nullptr;
-    const Instruction* nextInstruction = nullptr;
-    const Instruction* blockEnd = nullptr;
+    BasicBlock::const_iterator instr{};
+    BasicBlock::const_iterator blockEnd{};
 };
 
 const ThreadedExecutor::HandlerTable ThreadedExecutor::handlersTable_ = [] {
@@ -57,29 +54,34 @@ void ThreadedExecutor::run(Cpu& cpu, Memory& memory)
 {
     Context ctx{cpu, memory};
 
-    prepareNext(ctx)(&ctx);
+    loadNextBlock(ctx);
+
+    const Handler first = handlerFor(ctx.instr->instrKind);
+    first(&ctx);
 }
 
 void ThreadedExecutor::loadNextBlock(Context& ctx)
 {
     const BasicBlock& block = ctx.cpu.getBasicBlock(ctx.memory, ctx.cpu.getState().pc);
 
-    ctx.nextInstruction = block.data();
-    ctx.blockEnd = ctx.nextInstruction + block.size();
+    ctx.instr = block.cbegin();
+    ctx.blockEnd = block.cend();
 }
 
 inline ThreadedExecutor::Handler ThreadedExecutor::prepareNext(Context& ctx)
 {
-    if (ctx.nextInstruction == ctx.blockEnd) {
+    ++ctx.instr;
+    if (ctx.instr == ctx.blockEnd) {
         loadNextBlock(ctx);
     }
-    ctx.instr = ctx.nextInstruction++;
 
-    const auto index = static_cast<std::size_t>(ctx.instr->instrKind);
+    return handlerFor(ctx.instr->instrKind);
+}
+
+inline ThreadedExecutor::Handler ThreadedExecutor::handlerFor(InstrKind kind)
+{
+    const auto index = static_cast<std::size_t>(kind);
     const Handler handler = handlersTable_.at(index);
-    if (handler == nullptr) {
-        throw std::out_of_range("No threaded handler for instruction kind");
-    }
     
     return handler;
 }
