@@ -76,7 +76,8 @@ README. `nix build` собирает пакет симулятора; бенчм
 ## Бенчмарки
 
 Сравнивается switch и threaded на арифметике, переходах, обращениях
-к памяти, CRC32 и сортировке вставками.
+к памяти, CRC32, сортировке вставками (`insertion_sort`) и пузырьковой
+сортировке (`bubble_sort`).
 
 ```bash
 ruby benchmarks/run.rb comparison

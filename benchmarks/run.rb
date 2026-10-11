@@ -123,8 +123,10 @@ module Benchmarks
 
         def self.build_benchmark(directory)
             cache = File.join(directory, 'CMakeCache.txt')
+            build_file = File.join(directory, 'build.ninja')
             presets = File.join(PROJECT_ROOT, 'CMakePresets.json')
-            needs_configuration = !File.file?(cache) || File.mtime(presets) > File.mtime(cache)
+            needs_configuration = !File.file?(cache) || !File.file?(build_file) ||
+                File.mtime(presets) > File.mtime(cache)
 
             commands = []
             commands << ['cmake', '--preset', BUILD_PRESET] if needs_configuration
