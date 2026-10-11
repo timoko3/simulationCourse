@@ -86,4 +86,4 @@ ruby benchmarks/run.rb comparison
 
 Артефакты сохраняются в `benchmark-results/<UTC-время>/`.
 
-**[Отчёт: результаты и применённые оптимизации](benchmarks/RESULTS.md).**
+**[Отчёт: результаты и применённые оптимизации](benchmarks/threaded_vs_switch.md).**
