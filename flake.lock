@@ -8,34 +8,32 @@
         ]
       },
       "locked": {
-        "lastModified": 1791632785,
-        "narHash": "sha256-T4MGx62l+OLouo2uVnnImb+D32YMRbNN6O7U1tqFWKE=",
+        "lastModified": 1791708664,
+        "narHash": "sha256-tWUuKL4acrLjLOGnu1SrzHjrsg1h9soTQ5kFf6w7LRM=",
         "owner": "timoko3",
         "repo": "cacheResearch",
-        "rev": "53b2af70a56335489c8d00565a5228f0bbc06f28",
+        "rev": "1af2bd220fb053ce786227b1334b277b3d865de9",
         "type": "github"
       },
       "original": {
         "owner": "timoko3",
         "repo": "cacheResearch",
-        "rev": "53b2af70a56335489c8d00565a5228f0bbc06f28",
         "type": "github"
       }
     },
     "general-functions": {
       "flake": false,
       "locked": {
-        "lastModified": 1791499036,
-        "narHash": "sha256-qaan8WsWD+TmQP4Ze2iCFlPTSWzriMDG0ZclhrSzUTU=",
+        "lastModified": 1791565078,
+        "narHash": "sha256-8/xTSx/50TMP1pSfEc2VW11jD6DIjeesrFmlrqQTeZs=",
         "owner": "timoko3",
         "repo": "generalFunctions",
-        "rev": "dc31aef3c60cb88428c6aa7b150edbc36028508e",
+        "rev": "a46b47412a4996a2668a0bd525507702040052f2",
         "type": "github"
       },
       "original": {
         "owner": "timoko3",
         "repo": "generalFunctions",
-        "rev": "dc31aef3c60cb88428c6aa7b150edbc36028508e",
         "type": "github"
       }
     },
