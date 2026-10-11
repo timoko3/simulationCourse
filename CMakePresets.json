@@ -8,6 +8,7 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++",
         "BUILD_TESTING": "ON",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
@@ -23,11 +24,27 @@
       "displayName": "Release",
       "inherits": "base",
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "benchmark",
+      "displayName": "Dispatch benchmarks (Clang Release)",
+      "inherits": "release",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+        "BUILD_TESTING": "OFF",
+        "SIMCOURSE_BUILD_BENCHMARKS": "ON"
+      }
     }
   ],
   "buildPresets": [
     { "name": "debug", "configurePreset": "debug" },
-    { "name": "release", "configurePreset": "release" }
+    { "name": "release", "configurePreset": "release" },
+    {
+      "name": "benchmark",
+      "configurePreset": "benchmark",
+      "targets": ["simcourse_bench"]
+    }
   ],
   "testPresets": [
     {
