@@ -28,7 +28,8 @@ int main(int argc, char* argv[])
         simulator::FunctionalSimulator sim{mode};
 
         sim.loadProgram(programPath);
-        sim.runSimulation();
+        const auto exitCode = sim.runSimulation();
+        std::cout << "Program exited with code " << exitCode << '\n';
 
         return EXIT_SUCCESS;
     }

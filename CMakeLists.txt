@@ -43,6 +43,7 @@ if(NOT TARGET CacheResearch::cache)
 endif()
 
 set(CMAKE_CXX_EXTENSIONS OFF)
+option(SIMCOURSE_BUILD_BENCHMARKS "Build dispatch comparison benchmark (requires musttail)" OFF)
 
 # Instruction representation and decoding helpers.
 add_library(isa STATIC
@@ -86,6 +87,10 @@ check_cxx_source_compiles([=[
     }
     int main() { step(nullptr); }
 ]=] SIMCOURSE_HAS_MUSTTAIL)
+
+if(SIMCOURSE_BUILD_BENCHMARKS AND NOT SIMCOURSE_HAS_MUSTTAIL)
+    message(FATAL_ERROR "Dispatch benchmarks require clang::musttail. Configure a fresh build directory with -DCMAKE_CXX_COMPILER=clang++")
+endif()
 
 if(SIMCOURSE_HAS_MUSTTAIL)
     target_sources(simulator_core PRIVATE toyFunctionalSim/threadedExecutor.cpp)
@@ -131,4 +136,8 @@ include(CTest)
 
 if(BUILD_TESTING)
     add_subdirectory(tests)
+endif()
+
+if(SIMCOURSE_BUILD_BENCHMARKS)
+    add_subdirectory(benchmarks)
 endif()

@@ -1,0 +1,8 @@
+add_executable(simcourse_bench main.cpp benchmark.cpp ui.cpp)
+target_link_libraries(simcourse_bench PRIVATE simulator_core CLI11::CLI11)
+target_compile_features(simcourse_bench PRIVATE cxx_std_17)
+if(MSVC)
+    target_compile_options(simcourse_bench PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(simcourse_bench PRIVATE -Wall -Wextra -Wpedantic)
+endif()

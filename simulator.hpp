@@ -1,14 +1,15 @@
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
 
 #include "isa/definitions.hpp"
 
-namespace simulator{
+namespace simulator {
 
-class Simulator{
+class Simulator {
 public:
-    virtual void runSimulation() = 0;
+    virtual uint32_t runSimulation() = 0;
 
     virtual void loadProgram(const std::filesystem::path& progFilePath) = 0;
 };

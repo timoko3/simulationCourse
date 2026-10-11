@@ -9,27 +9,29 @@
 #include "programLoader/loader.hpp"
 
 #include <filesystem>
+#include <memory>
 
-namespace simulator{
+namespace simulator {
 
-class FunctionalSimulator : public Simulator{
-private:
+class FunctionalSimulator : public Simulator {
     Cpu cpu_;
     Memory memory_;
     DispatchMode dispatchMode_;
 
     std::unique_ptr<Loader> loader_;
+    bool isProgLoad = false;
 
-    bool isProgLoad = 0;
 public:
     explicit FunctionalSimulator(DispatchMode mode = DispatchMode::Switch);
 
-    void runSimulation() override;
+    uint32_t runSimulation() override;
 
     void loadProgram(const std::filesystem::path& filePath) override;
 
-    bool isProgLoaded() const { return isProgLoad; }; 
+    bool isProgLoaded() const { return isProgLoad; }
+
     const CpuState& getState() const { return cpu_.getState(); }
+    const Memory& getMemory() const { return memory_; }
 };
 
-}
+} // namespace simulator
