@@ -11,8 +11,8 @@ struct ThreadedExecutor::Context {
     Cpu& cpu;
     Memory& memory;
 
-    BasicBlock block{};
-    // The block owns these instructions. Refresh the cursors after replacing it.
+    // Instructions belong to the cache. No cache lookup occurs while executing
+    // a block; refresh all cursors after the next lookup, which may evict it.
     const Instruction* instr = nullptr;
     const Instruction* nextInstruction = nullptr;
     const Instruction* blockEnd = nullptr;
@@ -62,12 +62,10 @@ void ThreadedExecutor::run(Cpu& cpu, Memory& memory)
 
 void ThreadedExecutor::loadNextBlock(Context& ctx)
 {
-    ctx.block = ctx.cpu.getBasicBlock(ctx.memory, ctx.cpu.getState().pc);
-    if (ctx.block.empty()) {
-        throw std::out_of_range("Cannot execute an empty basic block");
-    }
-    ctx.nextInstruction = ctx.block.data();
-    ctx.blockEnd = ctx.nextInstruction + ctx.block.size();
+    const BasicBlock& block = ctx.cpu.getBasicBlock(ctx.memory, ctx.cpu.getState().pc);
+
+    ctx.nextInstruction = block.data();
+    ctx.blockEnd = ctx.nextInstruction + block.size();
 }
 
 inline ThreadedExecutor::Handler ThreadedExecutor::prepareNext(Context& ctx)

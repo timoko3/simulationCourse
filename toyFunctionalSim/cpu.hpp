@@ -25,7 +25,7 @@ class Cpu{
 
     BasicBlock createBasicBlock(Memory& memory, Addr startPc);
 public:
-    BasicBlock getBasicBlock(Memory& memory, Addr startPc);
+    const BasicBlock& getBasicBlock(Memory& memory, Addr startPc);
 
     void stepBlock(Memory& memory);
 

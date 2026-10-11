@@ -4,14 +4,14 @@ namespace simulator{
 
 void
 Cpu::stepBlock(Memory& memory){
-    BasicBlock curBasicBlock = getBasicBlock(memory, state_.pc);
+    const BasicBlock& curBasicBlock = getBasicBlock(memory, state_.pc);
 
     for(const auto& instr : curBasicBlock){
         simpPipeline_.exec_.execInstr(state_, memory, instr);
     }
 }
 
-BasicBlock 
+const BasicBlock&
 Cpu::getBasicBlock(Memory& memory, Addr startPc) {
     // The cache copies the loaded block before this local storage expires.
     BasicBlock loadedBlock;
