@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     cache-research = {
-      url = "github:timoko3/cacheResearch/53b2af70a56335489c8d00565a5228f0bbc06f28";
+      url = "github:timoko3/cacheResearch";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
