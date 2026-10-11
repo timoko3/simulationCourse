@@ -1,9 +1,11 @@
 #include "benchmark.hpp"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #include "toyFunctionalSim/functionalSimulator.hpp"
 
@@ -55,11 +57,14 @@ namespace {
 Sample runRound(Mode mode, const std::filesystem::path& program, int round)
 {
     switch (mode) {
+        case Mode::Naive:
+            return {std::nullopt, std::nullopt, execute(program, DispatchMode::Naive).nanoseconds};
+
         case Mode::Switch:
-            return {execute(program, DispatchMode::Switch).nanoseconds, std::nullopt};
+            return {execute(program, DispatchMode::Switch).nanoseconds, std::nullopt, std::nullopt};
 
         case Mode::Threaded:
-            return {std::nullopt, execute(program, DispatchMode::Threaded).nanoseconds};
+            return {std::nullopt, execute(program, DispatchMode::Threaded).nanoseconds, std::nullopt};
 
         case Mode::Comparison:
             return runComparison(program, round);
@@ -70,17 +75,46 @@ Sample runRound(Mode mode, const std::filesystem::path& program, int round)
 
 Sample runComparison(const std::filesystem::path& program, int round)
 {
-    const bool isSwitch = round % 2 == 0;
-    const auto firstMode = isSwitch ? DispatchMode::Switch : DispatchMode::Threaded;
-    const auto secondMode = isSwitch ? DispatchMode::Threaded : DispatchMode::Switch;
+    const std::array modes{DispatchMode::Naive, DispatchMode::Switch, DispatchMode::Threaded};
+    auto order = modes;
 
-    const Execution first = execute(program, firstMode);
-    const Execution second = execute(program, secondMode);
+    // Cycle through all six orders to balance position and predecessor effects.
+    const auto rotation = round % modes.size();
+    std::rotate(order.begin(), order.begin() + rotation, order.end());
+    if ((round / modes.size()) % 2 != 0) {
+        std::reverse(order.begin(), order.end());
+    }
 
-    verifyEqual(first, second);
+    std::optional<Execution> reference;
+    Sample sample;
 
-    return isSwitch ? Sample{first.nanoseconds, second.nanoseconds}
-                       : Sample{second.nanoseconds, first.nanoseconds};
+    for (const auto mode : order) {
+        Execution execution = execute(program, mode);
+
+        if (reference) {
+            verifyEqual(*reference, execution);
+        }
+
+        switch (mode) {
+            case DispatchMode::Naive:
+                sample.naiveNs = execution.nanoseconds;
+                break;
+
+            case DispatchMode::Switch:
+                sample.switchNs = execution.nanoseconds;
+                break;
+
+            case DispatchMode::Threaded:
+                sample.threadedNs = execution.nanoseconds;
+                break;
+        }
+
+        if (!reference) {
+            reference = std::move(execution);
+        }
+    }
+
+    return sample;
 }
 
 Execution execute(const std::filesystem::path& program, DispatchMode mode)

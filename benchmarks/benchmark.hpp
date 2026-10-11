@@ -6,7 +6,7 @@
 
 namespace benchmark {
 
-enum class Mode { Threaded, Switch, Comparison };
+enum class Mode { Naive, Threaded, Switch, Comparison };
 
 inline constexpr int defaultSamples = 9;
 inline constexpr int minSamples = 1;
@@ -26,6 +26,7 @@ struct Options {
 struct Sample {
     std::optional<double> switchNs;
     std::optional<double> threadedNs;
+    std::optional<double> naiveNs;
 };
 
 std::vector<Sample> run(const Options& options);

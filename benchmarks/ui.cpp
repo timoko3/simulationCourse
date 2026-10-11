@@ -26,7 +26,7 @@ void printSample(std::ostream& output, const Sample& sample);
 
 InputResult readOptions(int argc, char** argv)
 {
-    CLI::App app{"Measure one dispatch mode or compare both on the same ELF program"};
+    CLI::App app{"Measure one interpreter or compare all three on the same ELF program"};
     Options options;
     std::string mode;
     std::string program;
@@ -51,7 +51,8 @@ void printResults(std::ostream& output, const Options& options,
 {
     output << std::setprecision(resultPrecision)
            << "{\"mode\":\"" << modeName(options.mode)
-           << "\",\"cache\":\"cold\",\"warmups\":" << options.warmups
+           << "\",\"cache\":\"" << (options.mode == Mode::Naive ? "none" : "cold")
+           << "\",\"warmups\":" << options.warmups
            << ",\"samples\":[";
 
     bool first = true;
@@ -78,6 +79,7 @@ namespace {
 Mode getMode(const std::string& mode)
 {
     const std::map<std::string, Mode> modes{
+        {"naive", Mode::Naive},
         {"threaded", Mode::Threaded},
         {"switch", Mode::Switch},
         {"comparison", Mode::Comparison},
@@ -89,6 +91,9 @@ Mode getMode(const std::string& mode)
 std::string_view modeName(Mode mode)
 {
     switch (mode) {
+    case Mode::Naive:
+        return "naive";
+
     case Mode::Threaded:
         return "threaded";
 
@@ -106,21 +111,28 @@ void configureCommandLine(CLI::App& app, Options& options,
                           std::string& mode, std::string& program)
 {
     app.add_option("--mode", mode, "Dispatch mode")
-        ->required()->check(CLI::IsMember({"threaded", "switch", "comparison"}));
+        ->required()->check(CLI::IsMember({"naive", "threaded", "switch", "comparison"}));
 
     app.add_option("--program", program, "Self-contained ELF program ending with exit code 0")
         ->required()->check(CLI::ExistingFile);
 
-    app.add_option("--samples", options.samples, "Measured executions (pairs in comparison)")
+    app.add_option("--samples", options.samples, "Measured executions (triples in comparison)")
         ->check(CLI::Range(minSamples, maxSamples));
 
-    app.add_option("--warmups", options.warmups, "Unmeasured executions (pairs in comparison)")
+    app.add_option("--warmups", options.warmups, "Unmeasured executions (triples in comparison)")
         ->check(CLI::Range(minWarmups, maxWarmups));
 }
 
 void printSample(std::ostream& output, const Sample& sample)
 {
     output << '{';
+
+    if (sample.naiveNs) {
+        output << "\"naive_ns\":" << *sample.naiveNs;
+        if (sample.switchNs || sample.threadedNs) {
+            output << ',';
+        }
+    }
 
     if (sample.switchNs) {
         output << "\"switch_ns\":" << *sample.switchNs;

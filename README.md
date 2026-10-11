@@ -81,10 +81,22 @@ README. `nix build` собирает пакет симулятора; бенчм
 
 ```bash
 ruby benchmarks/run.rb comparison
+
+# Построить PNG/SVG с 95%-ми доверительными интервалами.
+ruby benchmarks/run.rb comparison --samples 31 --timeout 120 --plot
 ```
 
 Доступны также другие опции запуска подробности: `ruby benchmarks/run.rb --help`.
 
+Для графика нужны Python 3 и Matplotlib (`sudo apt install python3-matplotlib`
+в Ubuntu). Сохранённые замеры можно визуализировать отдельно:
+
+```bash
+python3 benchmarks/plot.py benchmark-results/<каталог-запуска>/results.json
+```
+
 Артефакты сохраняются в `benchmark-results/<UTC-время>/`.
 
 **[Отчёт: результаты и применённые оптимизации](benchmarks/threaded_vs_switch.md).**
+
+**[График: naive, cached switch и threaded](benchmarks/naive_vs_cached.md).**

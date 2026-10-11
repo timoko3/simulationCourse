@@ -7,7 +7,7 @@ require_relative 'report'
 
 module Benchmarks
     class Suite
-        MODES = %w[threaded switch comparison].freeze
+        MODES = %w[naive threaded switch comparison].freeze
         WORKLOADS = File.join(__dir__, 'workloads').freeze
         DEFAULT_TIMEOUT = 60
         ERROR_TAIL_BYTES = 8192
@@ -177,13 +177,15 @@ module Benchmarks
 
         def validate_measurement(measurement)
             expected_keys = {
+                'naive' => ['naive_ns'],
                 'switch' => ['switch_ns'],
                 'threaded' => ['threaded_ns'],
-                'comparison' => %w[switch_ns threaded_ns]
+                'comparison' => %w[naive_ns switch_ns threaded_ns]
             }.fetch(@mode)
 
             valid = measurement.is_a?(Hash) && measurement['mode'] == @mode &&
-                measurement['cache'] == 'cold' && measurement['samples'].is_a?(Array) &&
+                measurement['cache'] == (@mode == 'naive' ? 'none' : 'cold') &&
+                measurement['samples'].is_a?(Array) &&
                 !measurement['samples'].empty?
 
             raise 'Invalid benchmark response' unless valid
