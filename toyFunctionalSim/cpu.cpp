@@ -3,7 +3,7 @@
 namespace simulator{
 
 void
-Cpu::stepBlock(Memory& memory){
+Cpu::interpretBlock(Memory& memory){
     const BasicBlock& curBasicBlock = getBasicBlock(memory, state_.pc);
 
     for(const auto& instr : curBasicBlock){

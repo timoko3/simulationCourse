@@ -7,8 +7,8 @@
 
 namespace simulator {
 
-FunctionalSimulator::FunctionalSimulator(DispatchMode mode)
-    : dispatchMode_(mode), loader_(std::make_unique<ElfLoader>()){}
+FunctionalSimulator::FunctionalSimulator(DispatchMode dispatchMode, ExecutionMode execMode)
+    : dispatchMode_(dispatchMode), execMode_(execMode), loader_(std::make_unique<ElfLoader>()){}
 
 uint32_t FunctionalSimulator::runSimulation()
 {
@@ -17,7 +17,7 @@ uint32_t FunctionalSimulator::runSimulation()
     }
 
     try {
-        cpu_.run(memory_, dispatchMode_);
+        cpu_.run(memory_, dispatchMode_, execMode_);
     }
     catch (const ExitSyscall& syscall) {
         if (syscall.type != SYSCALL_EXIT) {

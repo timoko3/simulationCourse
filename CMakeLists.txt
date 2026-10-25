@@ -35,9 +35,9 @@ if(NOT TARGET CacheResearch::cache)
     set(CACHE_RESEARCH_BUILD_TESTS OFF)
     set(CACHE_RESEARCH_INSTALL OFF)
     FetchContent_Declare(cache_research
-        URL https://codeload.github.com/timoko3/cacheResearch/tar.gz/53b2af70a56335489c8d00565a5228f0bbc06f28
-        URL_HASH SHA256=e77e974b1fd235feff88a0832e035dca8a22af596b9d17e4308da4938ab0e592
-        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        GIT_REPOSITORY https://github.com/timoko3/cacheResearch.git
+        GIT_TAG origin/master
+        GIT_SHALLOW TRUE
     )
     FetchContent_MakeAvailable(cache_research)
 endif()
@@ -60,6 +60,7 @@ target_include_directories(isa PUBLIC
 add_library(simulator_core STATIC
     toyFunctionalSim/cpu.cpp
     toyFunctionalSim/cpuRun.cpp
+    toyFunctionalSim/dbtExecutor.cpp
     toyFunctionalSim/memory.cpp
     toyFunctionalSim/functionalSimulator.cpp
 

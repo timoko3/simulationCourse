@@ -8,7 +8,7 @@
 #include "memory.hpp"
 #include "simplePipeline/simplePipeline.hpp"
 
-#include "dispatchMode.hpp"
+#include "simulatorSettings.hpp"
 
 #include <cache/cacheLIRS.h>
 
@@ -27,9 +27,9 @@ class Cpu{
 public:
     const BasicBlock& getBasicBlock(Memory& memory, Addr startPc);
 
-    void stepBlock(Memory& memory);
+    void interpretBlock(Memory& memory);
 
-    void run(Memory& memory, DispatchMode dispatchMode);
+    void run(Memory& memory, DispatchMode dispatchMode, ExecutionMode execMode);
 
     CpuState& getState(){ return state_; }
     const CpuState& getState() const { return state_; }

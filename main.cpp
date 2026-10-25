@@ -5,7 +5,7 @@
 
 #include <CLI/CLI.hpp>
 
-#include "toyFunctionalSim/dispatchMode.hpp"
+#include "toyFunctionalSim/simulatorSettings.hpp"
 #include "toyFunctionalSim/functionalSimulator.hpp"
 
 int main(int argc, char* argv[])
@@ -13,8 +13,10 @@ int main(int argc, char* argv[])
     CLI::App app{"Functional ISA simulator"};
     std::string programPath;
     bool threaded = false;
+    bool isDBT    = false;
     app.add_option("program", programPath, "ELF program")->required();
     app.add_flag("--threaded", threaded, "Use threaded dispatch (requires clang::musttail)");
+    app.add_flag("--dbt", isDBT, "Use DBT optimization");
 
     try {
         app.parse(argc, argv);
@@ -24,8 +26,9 @@ int main(int argc, char* argv[])
     }
 
     try {
-        const auto mode = threaded ? simulator::DispatchMode::Threaded : simulator::DispatchMode::Switch;
-        simulator::FunctionalSimulator sim{mode};
+        const auto dispatchMode = threaded ? simulator::DispatchMode::Threaded : simulator::DispatchMode::Switch;
+        const auto execMode     = isDBT    ? simulator::ExecutionMode::DBT     : simulator::ExecutionMode::Standard;
+        simulator::FunctionalSimulator sim{dispatchMode, execMode};
 
         sim.loadProgram(programPath);
         const auto exitCode = sim.runSimulation();
