@@ -1,5 +1,6 @@
 #include "dbtExecutor.hpp"
 #include "cpu.hpp"
+#include "dbt/hostCodeExecutor.hpp"
 
 namespace simulator{
 
@@ -9,7 +10,7 @@ void DbtExecutor::run(Cpu& cpu, Memory& memory, std::size_t threshold)
         const Addr pc = cpu.getState().pc;
         const auto curHostBasicBlock = translationCache_.lookup(pc);
         if (curHostBasicBlock != std::nullopt) {
-            curHostBasicBlock->get()->execute(cpu.getState(), memory);
+            HostCodeExecutor::execute(*curHostBasicBlock->get(), cpu.getState(), memory);
         }
         else {
             auto& count = executionCounts_[pc];
@@ -22,7 +23,7 @@ void DbtExecutor::run(Cpu& cpu, Memory& memory, std::size_t threshold)
                 const auto block = translationCache_.lookupUpdate(pc, [&translatedBlock](Addr) -> const std::shared_ptr<HostBasicBlock>& {
                                                                                                     return translatedBlock;
                                                                                                 });
-                block->execute(cpu.getState(), memory);
+                HostCodeExecutor::execute(*block, cpu.getState(), memory);
             }
         }
     }

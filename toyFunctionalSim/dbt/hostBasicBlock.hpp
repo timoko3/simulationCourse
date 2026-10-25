@@ -1,27 +1,29 @@
 #pragma once
 
-#include <stdexcept>
+#include <utility>
+#include <vector>
 
 #include "isa/definitions.hpp"
 
 namespace simulator {
 
-struct CpuState;
-struct Memory;
-
 class HostBasicBlock {
 private:
     Addr startPc_;
+    std::vector<Byte> code_;
 
 public:
-    HostBasicBlock(Addr startPc) : startPc_(startPc) {}
+    explicit HostBasicBlock(Addr startPc, std::vector<Byte> code = {})
+        : startPc_(startPc), code_(std::move(code)) {}
 
     HostBasicBlock(const HostBasicBlock&) = delete;
     HostBasicBlock& operator=(const HostBasicBlock&) = delete;
 
-    Addr getStartPc() const { return startPc_; }
+    HostBasicBlock(HostBasicBlock&&) noexcept = default;
+    HostBasicBlock& operator=(HostBasicBlock&&) noexcept = default;
 
-    void execute(CpuState& state, Memory& memory) const {}
+    Addr getStartPc() const { return startPc_; }
+    const std::vector<Byte>& getCode() const { return code_; }
 };
 
 }
