@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 
 project(SimCourse
     VERSION 1.0.0
-    LANGUAGES CXX
+    LANGUAGES C CXX
 )
 
 include(FetchContent)
@@ -45,6 +45,61 @@ endif()
 set(CMAKE_CXX_EXTENSIONS OFF)
 option(SIMCOURSE_BUILD_BENCHMARKS "Build dispatch comparison benchmark (requires musttail)" OFF)
 
+option(SIMCOURSE_ENABLE_LLVM "Link the LLVM backend dependencies" ON)
+option(SIMCOURSE_FETCH_LLVM "Build LLVM from source when no installed package is found" ON)
+set(SIMCOURSE_LLVM_TAG "llvmorg-20.1.8" CACHE STRING "LLVM release tag used for the source fallback")
+
+if(SIMCOURSE_ENABLE_LLVM)
+    find_package(LLVM CONFIG QUIET)
+    if(NOT LLVM_FOUND)
+        if(NOT SIMCOURSE_FETCH_LLVM)
+            message(FATAL_ERROR
+                "LLVM development package was not found. Set LLVM_DIR to the directory "
+                "containing LLVMConfig.cmake, or enable SIMCOURSE_FETCH_LLVM.")
+        endif()
+
+        message(STATUS "LLVM not found; building ${SIMCOURSE_LLVM_TAG} from source")
+        set(LLVM_TARGETS_TO_BUILD "Native" CACHE STRING "LLVM targets to build")
+        set(LLVM_ENABLE_PROJECTS "" CACHE STRING "Additional LLVM projects")
+        set(LLVM_ENABLE_RUNTIMES "" CACHE STRING "Additional LLVM runtimes")
+        set(LLVM_INCLUDE_TESTS OFF CACHE BOOL "Build LLVM tests")
+        set(LLVM_INCLUDE_EXAMPLES OFF CACHE BOOL "Build LLVM examples")
+        set(LLVM_INCLUDE_BENCHMARKS OFF CACHE BOOL "Build LLVM benchmarks")
+        set(LLVM_INCLUDE_DOCS OFF CACHE BOOL "Build LLVM documentation")
+        set(LLVM_INCLUDE_TOOLS OFF CACHE BOOL "Build LLVM tools")
+        FetchContent_Declare(llvm_project
+            GIT_REPOSITORY https://github.com/llvm/llvm-project.git
+            GIT_TAG ${SIMCOURSE_LLVM_TAG}
+            GIT_SHALLOW TRUE
+            GIT_SUBMODULES ""
+            SOURCE_SUBDIR llvm
+        )
+        FetchContent_MakeAvailable(llvm_project)
+
+        # LLVM's source build keeps these variables in its directory scope.
+        foreach(variable LLVM_NATIVE_ARCH LLVM_TARGETS_TO_BUILD)
+            get_directory_property(${variable}
+                DIRECTORY "${llvm_project_SOURCE_DIR}/llvm" DEFINITION ${variable})
+        endforeach()
+        set(LLVM_INCLUDE_DIRS
+            "${llvm_project_SOURCE_DIR}/llvm/include"
+            "${llvm_project_BINARY_DIR}/include"
+        )
+        get_directory_property(SIMCOURSE_LLVM_DEFINITIONS
+            DIRECTORY "${llvm_project_SOURCE_DIR}/llvm" COMPILE_DEFINITIONS)
+        include("${llvm_project_SOURCE_DIR}/llvm/cmake/modules/LLVM-Config.cmake")
+    else()
+        message(STATUS "Using installed LLVM ${LLVM_PACKAGE_VERSION}")
+        separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND "${LLVM_DEFINITIONS}")
+        string(REGEX REPLACE "(^|;)-D" "\\1" SIMCOURSE_LLVM_DEFINITIONS
+            "${LLVM_DEFINITIONS_LIST}")
+    endif()
+
+    llvm_map_components_to_libnames(SIMCOURSE_LLVM_LIBS
+        core support orcjit native passes
+    )
+endif()
+
 # Instruction representation and decoding helpers.
 add_library(isa STATIC
     isa/extractors.cpp
@@ -61,6 +116,8 @@ add_library(simulator_core STATIC
     toyFunctionalSim/cpu.cpp
     toyFunctionalSim/cpuRun.cpp
     toyFunctionalSim/dbtExecutor.cpp
+    toyFunctionalSim/dbt/binaryTranslator.cpp
+    toyFunctionalSim/dbt/hostCodeExecutor.cpp
     toyFunctionalSim/memory.cpp
     toyFunctionalSim/functionalSimulator.cpp
 
@@ -73,6 +130,13 @@ add_library(simulator_core STATIC
 )
 
 target_compile_features(simulator_core PUBLIC cxx_std_17)
+
+if(SIMCOURSE_ENABLE_LLVM)
+    target_include_directories(simulator_core SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
+    target_compile_definitions(simulator_core PRIVATE ${SIMCOURSE_LLVM_DEFINITIONS})
+    target_link_libraries(simulator_core PRIVATE ${SIMCOURSE_LLVM_LIBS})
+
+endif()
 
 include(CheckCXXSourceCompiles)
 check_cxx_source_compiles([=[

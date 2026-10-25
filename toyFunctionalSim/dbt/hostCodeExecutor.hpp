@@ -4,8 +4,8 @@
 
 namespace simulator{
 
-class CpuState;
-class Memory;
+struct CpuState;
+struct Memory;
 
 class HostCodeExecutor {
 public:

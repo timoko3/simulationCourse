@@ -39,6 +39,7 @@
             doCheck = false;
           };
           gtest = pkgs.gtest.override { stdenv = pkgs.clangStdenv; };
+          llvm = pkgs.llvmPackages.llvm;
           cache = pkgs.cache-research-library;
         };
       packagesFor =
@@ -70,6 +71,8 @@
                 dependencies.elfio
                 dependencies.cache
                 dependencies.gtest
+                dependencies.llvm
+                dependencies.llvm.dev
               ];
               cmakeFlags = [
                 "-DCMAKE_BUILD_TYPE=Release"
