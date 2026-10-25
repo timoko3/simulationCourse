@@ -14,12 +14,18 @@ namespace simulator {
 
 class BinaryTranslator{
     std::unique_ptr<TranslationBackend> backend_;
+
+    
 public:
     explicit BinaryTranslator(DbtLib backendType) {
         switch (backendType) {
             case DbtLib::LLVM:
+#if SIMCOURSE_HAS_LLVM
                 backend_ = std::make_unique<LlvmBackend>();
                 break;
+#else
+                throw std::runtime_error("LLVM backend is disabled in this build");
+#endif
             case DbtLib::ASM_JIT:
                 backend_ = std::make_unique<AsmJitBackend>();
                 break;
@@ -28,7 +34,9 @@ public:
             }
     }
 
-    std::unique_ptr<HostBasicBlock> translate(Addr pc, const BasicBlock& block);
+    std::unique_ptr<HostBasicBlock> translate(Addr pc, const BasicBlock& block) {
+        return backend_->translate(pc, block);
+    }
 };
 
 }

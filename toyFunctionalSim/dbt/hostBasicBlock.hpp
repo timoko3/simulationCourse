@@ -1,20 +1,35 @@
 #pragma once
 
+#include <memory>
+#include <stdexcept>
 #include <utility>
-#include <vector>
 
 #include "isa/definitions.hpp"
 
 namespace simulator {
 
+struct CpuState;
+struct Memory;
+
 class HostBasicBlock {
+public:
+    using EntryPoint = void (*)(CpuState*, Memory*);
+
 private:
     Addr startPc_;
-    std::vector<Byte> code_;
+    EntryPoint entryPoint_;
+    std::shared_ptr<void> codeOwner_;
 
 public:
-    explicit HostBasicBlock(Addr startPc, std::vector<Byte> code = {})
-        : startPc_(startPc), code_(std::move(code)) {}
+    HostBasicBlock(Addr startPc, EntryPoint entryPoint, std::shared_ptr<void> codeOwner)
+        : startPc_(startPc), entryPoint_(entryPoint), codeOwner_(std::move(codeOwner)) {
+        if (!entryPoint_) {
+            throw std::invalid_argument("Host block entry point must not be null");
+        }
+        if (!codeOwner_) {
+            throw std::invalid_argument("Host block code owner must not be null");
+        }
+    }
 
     HostBasicBlock(const HostBasicBlock&) = delete;
     HostBasicBlock& operator=(const HostBasicBlock&) = delete;
@@ -23,7 +38,7 @@ public:
     HostBasicBlock& operator=(HostBasicBlock&&) noexcept = default;
 
     Addr getStartPc() const { return startPc_; }
-    const std::vector<Byte>& getCode() const { return code_; }
+    EntryPoint getEntryPoint() const { return entryPoint_; }
 };
 
 }

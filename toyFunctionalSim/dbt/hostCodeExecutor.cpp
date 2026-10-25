@@ -1,12 +1,10 @@
 #include "hostCodeExecutor.hpp"
 
-#include <stdexcept>
-
 namespace simulator {
 
-void HostCodeExecutor::execute(const HostBasicBlock&, CpuState&, Memory&)
+void HostCodeExecutor::execute(const HostBasicBlock& block, CpuState& state, Memory& memory)
 {
-    throw std::runtime_error("Host code execution is not implemented yet");
+    block.getEntryPoint()(&state, &memory);
 }
 
 }
