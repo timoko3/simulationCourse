@@ -2,7 +2,8 @@
 
 #include <memory>
 
-#include "backend.hpp"
+#include "../backend.hpp"
+#include "../instructionEmitters.hpp"
 
 namespace llvm::orc {
 class LLJIT;
@@ -10,8 +11,16 @@ class LLJIT;
 
 namespace simulator {
 
+namespace llvmEmitters {
+struct Context;
+}
+
 class LlvmBackend : public TranslationBackend {
+    using EmitContext = llvmEmitters::Context;
+
     std::shared_ptr<llvm::orc::LLJIT> jit_;
+    EmitterTable<EmitContext> emitters_;
+
 
 public:
     LlvmBackend();

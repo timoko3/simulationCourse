@@ -5,8 +5,8 @@
 
 #include "hostBasicBlock.hpp"
 #include "backend.hpp"
-#include "llvmBackend.hpp"
-#include "asmJitBackend.hpp"
+#include "llvmBackend/llvmBackend.hpp"
+#include "asmJitBackend/asmJitBackend.hpp"
 #include "isa/isa.hpp"
 #include "toyFunctionalSim/simulatorSettings.hpp"
 
@@ -14,7 +14,6 @@ namespace simulator {
 
 class BinaryTranslator{
     std::unique_ptr<TranslationBackend> backend_;
-
     
 public:
     explicit BinaryTranslator(DbtLib backendType) {

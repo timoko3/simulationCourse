@@ -27,7 +27,6 @@ BasicBlock Cpu::createBasicBlock(Memory& memory, Addr startPc) {
     Addr interBlockPc = startPc;
 
     Instruction decodedInstr = {};
-    decodedInstr.instrKind = InstrKind::I_NOP;
 
     while( decodedInstr.instrKind != InstrKind::I_BEQ &&
            decodedInstr.instrKind != InstrKind::I_J   &&

@@ -8,7 +8,6 @@ namespace simulator{
 
 enum class InstrKind {
     I_INVALID,
-    I_NOP,
     I_ADD,
     I_BEQ,
     I_ADDI,

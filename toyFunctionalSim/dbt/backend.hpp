@@ -11,9 +11,7 @@ class TranslationBackend{
 public:
     virtual ~TranslationBackend() = default;
 
-    // Returned blocks retain ownership of the resources needed to execute their code.
-    virtual std::unique_ptr<HostBasicBlock> translate(
-        Addr startPc, const BasicBlock& block) = 0;
+    virtual std::unique_ptr<HostBasicBlock> translate(Addr startPc, const BasicBlock& block) = 0;
 };
 
 }

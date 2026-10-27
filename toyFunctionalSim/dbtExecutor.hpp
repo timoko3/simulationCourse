@@ -17,8 +17,7 @@ struct Memory;
 constexpr std::size_t T_CACHE_SIZE = 64;
 
 class DbtExecutor {
-    using TranslationCache =
-        cache::CacheLIRS<std::shared_ptr<HostBasicBlock>, Addr>;
+    using TranslationCache = cache::CacheLIRS<std::shared_ptr<HostBasicBlock>, Addr>;
 
     TranslationCache translationCache_{T_CACHE_SIZE};
     std::unordered_map<Addr, std::size_t> executionCounts_;

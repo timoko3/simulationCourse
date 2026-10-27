@@ -116,7 +116,6 @@ add_library(simulator_core STATIC
     toyFunctionalSim/cpu.cpp
     toyFunctionalSim/cpuRun.cpp
     toyFunctionalSim/dbtExecutor.cpp
-    toyFunctionalSim/dbt/hostCodeExecutor.cpp
     toyFunctionalSim/memory.cpp
     toyFunctionalSim/functionalSimulator.cpp
 
@@ -131,7 +130,7 @@ add_library(simulator_core STATIC
 target_compile_features(simulator_core PUBLIC cxx_std_17)
 
 if(SIMCOURSE_ENABLE_LLVM)
-    target_sources(simulator_core PRIVATE toyFunctionalSim/dbt/llvmBackend.cpp)
+    target_sources(simulator_core PRIVATE toyFunctionalSim/dbt/llvmBackend/llvmBackend.cpp)
     target_include_directories(simulator_core SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
     target_compile_definitions(simulator_core PRIVATE ${SIMCOURSE_LLVM_DEFINITIONS})
     target_link_libraries(simulator_core PRIVATE ${SIMCOURSE_LLVM_LIBS})
