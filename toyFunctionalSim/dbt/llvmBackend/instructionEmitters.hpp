@@ -40,23 +40,7 @@ inline void emitBeq(Context& ctx, const Instruction& instruction) {
 struct BitExtractOperation {
     llvm::Value* operator()(llvm::IRBuilder<>& builder,
                             llvm::Value* value, llvm::Value* mask) const {
-        llvm::Value* result = builder.getInt32(0);
-        llvm::Value* outputBit = builder.getInt32(1);
-
-        for (unsigned bit = 0; bit < 32; ++bit) {
-            auto* inputBit = builder.getInt32(Word{1} << bit);
-            auto* selected = builder.CreateICmpNE(
-                builder.CreateAnd(mask, inputBit), builder.getInt32(0));
-            auto* set = builder.CreateICmpNE(
-                builder.CreateAnd(value, inputBit), builder.getInt32(0));
-
-            result = builder.CreateOr(result, builder.CreateSelect(
-                builder.CreateAnd(selected, set), outputBit, builder.getInt32(0)));
-            outputBit = builder.CreateSelect(selected,
-                builder.CreateShl(outputBit, builder.getInt32(1)), outputBit);
-        }
-
-        return result;
+        return builder.CreateIntrinsic(llvm::Intrinsic::pext, {value->getType()}, {value, mask});
     }
 };
 

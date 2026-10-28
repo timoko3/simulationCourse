@@ -46,19 +46,28 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(SIMCOURSE_BUILD_BENCHMARKS "Build dispatch comparison benchmark (requires musttail)" OFF)
 
 option(SIMCOURSE_ENABLE_LLVM "Link the LLVM backend dependencies" ON)
-option(SIMCOURSE_FETCH_LLVM "Build LLVM from source when no installed package is found" ON)
-set(SIMCOURSE_LLVM_TAG "llvmorg-20.1.8" CACHE STRING "LLVM release tag used for the source fallback")
+option(SIMCOURSE_FETCH_LLVM "Build LLVM from source when no installed package is found" OFF)
+set(SIMCOURSE_LLVM_TAG "llvmorg-23.1.4" CACHE STRING "LLVM release tag used for the source fallback")
 
 if(SIMCOURSE_ENABLE_LLVM)
-    find_package(LLVM CONFIG QUIET)
+    if(SIMCOURSE_LLVM_TAG MATCHES "^llvmorg-([0-9]+)\\.")
+        if(CMAKE_MATCH_1 LESS 23)
+            set(SIMCOURSE_LLVM_TAG "llvmorg-23.1.4" CACHE STRING "LLVM release tag used for the source fallback" FORCE)
+        endif()
+    endif()
+
+    find_package(LLVM 23.1 CONFIG QUIET)
     if(NOT LLVM_FOUND)
         if(NOT SIMCOURSE_FETCH_LLVM)
             message(FATAL_ERROR
-                "LLVM development package was not found. Set LLVM_DIR to the directory "
-                "containing LLVMConfig.cmake, or enable SIMCOURSE_FETCH_LLVM.")
+                "LLVM 23 development package was not found. Install llvm-23-dev from "
+                "https://apt.llvm.org/ or enter the project environment with nix develop. "
+                "Set LLVM_DIR to the directory reported by llvm-config-23 --cmakedir "
+                "(llvm-config --cmakedir inside nix develop). "
+                "To build LLVM from source explicitly, set -DSIMCOURSE_FETCH_LLVM=ON.")
         endif()
 
-        message(STATUS "LLVM not found; building ${SIMCOURSE_LLVM_TAG} from source")
+        message(STATUS "LLVM 23 not found; building ${SIMCOURSE_LLVM_TAG} from source")
         set(LLVM_TARGETS_TO_BUILD "Native" CACHE STRING "LLVM targets to build")
         set(LLVM_ENABLE_PROJECTS "" CACHE STRING "Additional LLVM projects")
         set(LLVM_ENABLE_RUNTIMES "" CACHE STRING "Additional LLVM runtimes")

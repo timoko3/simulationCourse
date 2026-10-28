@@ -7,7 +7,6 @@
 #include <string>
 #include <utility>
 
-#include <llvm/Config/llvm-config.h>
 #include <llvm/ExecutionEngine/Orc/LLJIT.h>
 #include <llvm/ExecutionEngine/Orc/Core.h>
 #include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
@@ -115,11 +114,7 @@ LlvmBackend::translate(Addr pc, const BasicBlock& block) {
     auto module = std::make_unique<llvm::Module>("translationEnvironment", *context);
 
     module->setDataLayout(jit_->getDataLayout());
-#if LLVM_VERSION_MAJOR >= 21
     module->setTargetTriple(jit_->getTargetTriple());
-#else
-    module->setTargetTriple(jit_->getTargetTriple().str());
-#endif
 
     llvm::IRBuilder<> builder(*context);
 

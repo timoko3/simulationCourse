@@ -39,7 +39,7 @@
             doCheck = false;
           };
           gtest = pkgs.gtest.override { stdenv = pkgs.clangStdenv; };
-          llvm = pkgs.llvmPackages.llvm;
+          llvm = pkgs.llvmPackages_23.llvm;
           cache = pkgs.cache-research-library;
         };
       packagesFor =
@@ -113,7 +113,7 @@
               pkgs.git
               pkgs.python3
               pkgs.ruby
-              pkgs.llvmPackages.clang-tools
+              pkgs.llvmPackages_23.clang-tools
               pkgs.nixfmt
             ];
           };
