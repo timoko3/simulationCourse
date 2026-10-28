@@ -18,6 +18,7 @@ module Benchmarks
             report = suite.run(cases: options.fetch(:cases), output: options.fetch(:output))
 
             Report.print(report)
+            plot_results(options.fetch(:output)) if options[:plot]
             puts "Results: #{File.expand_path(options.fetch(:output))}"
 
             0
@@ -39,6 +40,11 @@ module Benchmarks
 
             mode = options[:execution][:mode]
             raise OptionParser::MissingArgument, 'MODE' unless mode
+
+            if options[:plot] && mode != 'comparison'
+                raise OptionParser::InvalidArgument, '--plot requires comparison mode'
+            end
+
             request = options.fetch(:execution).reject { |key, _value| key == :binary }
             Suite.validate_request(**request)
             Suite.select_cases(options.fetch(:cases))
@@ -53,7 +59,7 @@ module Benchmarks
             OptionParser.new do |cli|
                 cli.banner = 'Usage: ruby benchmarks/run.rb MODE [options]'
 
-                cli.on('--mode MODE', Suite::MODES, 'threaded, switch, dbt or comparison') do |value|
+                cli.on('--mode MODE', Suite::MODES, 'naive, threaded, switch, dbt or comparison') do |value|
                     options[:execution][:mode] = value
                 end
 
@@ -81,6 +87,10 @@ module Benchmarks
                     options[:output] = value
                 end
 
+                cli.on('--plot', 'Save a normalized PNG/SVG chart (requires Python 3 and Matplotlib)') do
+                    options[:plot] = true
+                end
+
                 cli.on('--list', 'List workloads') do
                     puts Suite.names
                     options[:information_only] = true
@@ -91,6 +101,11 @@ module Benchmarks
                     options[:information_only] = true
                 end
             end
+        end
+
+        def self.plot_results(directory)
+            command = ['python3', File.join(__dir__, 'plot.py'), File.join(directory, 'results.json')]
+            raise 'Plot failed; measurements are saved in results.json' unless system(*command)
         end
 
         def self.prepare_binary(explicit_path)

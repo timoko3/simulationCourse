@@ -24,6 +24,7 @@ class Cpu{
     iCache iCache_{I_CACHE_SIZE};
 
     BasicBlock createBasicBlock(Memory& memory, Addr startPc);
+    void stepInstruction(Memory& memory);
 public:
     const BasicBlock& getBasicBlock(Memory& memory, Addr startPc);
 

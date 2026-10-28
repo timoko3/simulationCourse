@@ -2,6 +2,13 @@
 
 namespace simulator{
 
+void Cpu::stepInstruction(Memory& memory) {
+    const Word raw = simpPipeline_.fetch_.instrFetch(memory, state_.pc);
+    const Instruction instruction = simpPipeline_.decode_.instrDecode(raw);
+
+    simpPipeline_.exec_.execInstr(state_, memory, instruction);
+}
+
 void
 Cpu::interpretBlock(Memory& memory){
     const BasicBlock& curBasicBlock = getBasicBlock(memory, state_.pc);

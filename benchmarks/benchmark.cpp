@@ -57,15 +57,19 @@ namespace {
 Sample runRound(Mode mode, const std::filesystem::path& program, int round)
 {
     switch (mode) {
+        case Mode::Naive:
+            return {std::nullopt, std::nullopt, std::nullopt,
+                    execute(program, DispatchMode::Naive).nanoseconds};
+
         case Mode::Switch:
-            return {execute(program, DispatchMode::Switch).nanoseconds, std::nullopt, std::nullopt};
+            return {execute(program, DispatchMode::Switch).nanoseconds, std::nullopt, std::nullopt, std::nullopt};
 
         case Mode::Threaded:
-            return {std::nullopt, execute(program, DispatchMode::Threaded).nanoseconds, std::nullopt};
+            return {std::nullopt, execute(program, DispatchMode::Threaded).nanoseconds, std::nullopt, std::nullopt};
 
         case Mode::DBT:
             return {std::nullopt, std::nullopt,
-                    execute(program, DispatchMode::Switch, ExecutionMode::DBT).nanoseconds};
+                    execute(program, DispatchMode::Switch, ExecutionMode::DBT).nanoseconds, std::nullopt};
 
         case Mode::Comparison:
             return runComparison(program, round);
@@ -76,20 +80,24 @@ Sample runRound(Mode mode, const std::filesystem::path& program, int round)
 
 Sample runComparison(const std::filesystem::path& program, int round)
 {
-    std::array<std::optional<Execution>, 3> executions;
+    std::array<std::optional<Execution>, 4> executions;
+    const std::array modes{DispatchMode::Naive, DispatchMode::Switch,
+                          DispatchMode::Threaded, DispatchMode::Switch};
 
     for (std::size_t offset = 0; offset < executions.size(); ++offset) {
         const auto index = (static_cast<std::size_t>(round) + offset) % executions.size();
-        const auto dispatchMode = index == 1 ? DispatchMode::Threaded : DispatchMode::Switch;
-        const auto executionMode = index == 2 ? ExecutionMode::DBT : ExecutionMode::Standard;
+        const auto dispatchMode = modes[index];
+        const auto executionMode = index == 3 ? ExecutionMode::DBT : ExecutionMode::Standard;
 
         executions[index] = execute(program, dispatchMode, executionMode);
     }
 
     verifyEqual(*executions[0], *executions[1]);
     verifyEqual(*executions[0], *executions[2]);
+    verifyEqual(*executions[0], *executions[3]);
 
-    return {executions[0]->nanoseconds, executions[1]->nanoseconds, executions[2]->nanoseconds};
+    return {executions[1]->nanoseconds, executions[2]->nanoseconds,
+            executions[3]->nanoseconds, executions[0]->nanoseconds};
 }
 
 Execution execute(const std::filesystem::path& program, DispatchMode mode, ExecutionMode executionMode)

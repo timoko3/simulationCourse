@@ -12,7 +12,12 @@ namespace simulator {
 void Cpu::run(Memory& memory, DispatchMode dispatchMode, ExecutionMode execMode)
 {
     if(execMode == ExecutionMode::Standard){
-        if(dispatchMode == DispatchMode::Switch){
+        if(dispatchMode == DispatchMode::Naive){
+            while (true) {
+                stepInstruction(memory);
+            }
+        }
+        else if(dispatchMode == DispatchMode::Switch){
             while (true) {
                 interpretBlock(memory);
             }
