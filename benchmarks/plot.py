@@ -22,15 +22,17 @@ BAR_WIDTH = 0.24
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("results", type=Path, help="results.json from comparison mode")
+    parser.add_argument("results", type=Path, help="results.json from comparison or threshold-sweep mode")
     args = parser.parse_args()
 
     with args.results.open(encoding="utf-8") as source:
         report = json.load(source)
 
-    figure = plot(report)
+    is_sweep = report.get("mode") == "threshold-sweep"
+    figure = plot_threshold_sweep(report) if is_sweep else plot(report)
+    basename = "threshold-speedup" if is_sweep else "dispatch-speedup"
     for extension in ("png", "svg"):
-        output = args.results.parent / f"dispatch-speedup.{extension}"
+        output = args.results.parent / f"{basename}.{extension}"
         figure.savefig(output, dpi=180, bbox_inches="tight")
         print(output)
 
@@ -81,6 +83,90 @@ def plot(report):
     figure.subplots_adjust(bottom=0.26)
 
     return figure
+
+
+def plot_threshold_sweep(report):
+    summary = report["threshold_summary"]
+    if not summary:
+        raise ValueError("No completed workloads to plot")
+
+    thresholds = [point["threshold"] for point in summary]
+    means = [point["geometric_mean"] for point in summary]
+    figure, (mean_axes, workload_axes) = plt.subplots(
+        2, 1, figsize=(14, 10), sharex=True, gridspec_kw={"height_ratios": [1.2, 1]})
+    figure.suptitle("DBT speedup versus translation threshold", fontsize=18, y=0.98)
+
+    mean_axes.plot(thresholds, means, color="#D86B35", marker="o", linewidth=3,
+                   label="Geometric mean", zorder=5)
+    mean_axes.axhline(means[0], color="#888888", linestyle=":", linewidth=1,
+                      label=f"Mean at threshold {thresholds[0]}")
+    bounds = list(means)
+
+    if all(point["ci95"] is not None for point in summary):
+        lower = [point["ci95"]["low"] for point in summary]
+        upper = [point["ci95"]["high"] for point in summary]
+        bounds.extend(lower + upper)
+        mean_axes.fill_between(thresholds, lower, upper, color="#D86B35", alpha=0.18,
+                               label="Approximate 95% CI", zorder=2)
+
+    padding = max((max(bounds) - min(bounds)) * 0.22, max(means) * 0.015)
+    mean_axes.set_ylim(max(0, min(bounds) - padding), max(bounds) + padding)
+    mean_axes.set_title("Geometric mean across workloads (linear scale)", fontsize=12, pad=12)
+    mean_axes.set_xlabel("Translation threshold")
+    mean_axes.tick_params(axis="x", labelbottom=True)
+    mean_axes.set_ylabel("Geometric mean speedup")
+    mean_axes.yaxis.set_major_formatter(FuncFormatter(lambda value, _position: f"{value:.2f}×"))
+    mean_axes.legend(loc="best", frameon=False, fontsize=9)
+
+    for index, (threshold, mean) in enumerate(zip(thresholds, means)):
+        mean_axes.annotate(f"{mean:.2f}×", (threshold, mean),
+                           xytext=(0, 10 if index % 2 == 0 else -18),
+                           textcoords="offset points", ha="center", fontsize=9, color="#9A431E")
+
+    relative_axes = mean_axes.secondary_yaxis(
+        "right", functions=(lambda value: (value / means[0] - 1) * 100,
+                             lambda value: means[0] * (1 + value / 100)))
+    relative_axes.set_ylabel(f"Change from threshold {thresholds[0]}")
+    relative_axes.yaxis.set_major_formatter(FuncFormatter(lambda value, _position: f"{value:+.0f}%"))
+
+    workload_axes.axhline(1.0, color="#75B39E", linestyle="--", linewidth=1.5, label="Naive switch: 1×")
+
+    for result in report["results"]:
+        statistics = result["statistics"]["thresholds"]
+        speedups = [statistics[str(threshold)]["speedup"]["median"] for threshold in thresholds]
+        workload_axes.plot(thresholds, speedups, marker=".", linewidth=1.5, alpha=0.8, label=result["name"])
+
+    workload_axes.set_title("Individual workloads (log scale)", fontsize=12, pad=12)
+    workload_axes.set_xlabel("Interpreted block executions before translation (0: translate immediately)")
+    workload_axes.set_ylabel("Speedup relative to naive")
+    workload_axes.set_xscale("symlog", linthresh=1)
+    workload_axes.set_xticks(thresholds, [format_threshold(value) for value in thresholds])
+    workload_axes.xaxis.set_minor_locator(NullLocator())
+    workload_axes.set_yscale("log", base=2)
+    workload_axes.yaxis.set_major_locator(LogLocator(base=2))
+    workload_axes.yaxis.set_major_formatter(FuncFormatter(lambda value, _position: f"{value:g}×"))
+    workload_axes.yaxis.set_minor_locator(NullLocator())
+    workload_axes.legend(loc="upper left", bbox_to_anchor=(0, -0.20), ncol=4, frameon=False, fontsize=9)
+
+    for axes in (mean_axes, workload_axes):
+        axes.grid(axis="both", color="#D5D9DD", linewidth=0.8)
+        axes.set_axisbelow(True)
+        axes.spines[["top", "right"]].set_visible(False)
+
+    figure.text(0.5, 0.015,
+                "Upper Y-axis zooms to the observed mean and CI. Cold caches; DBT includes JIT setup and translation.",
+                ha="center", fontsize=10, color="#555555")
+    figure.subplots_adjust(left=0.08, right=0.90, top=0.90, bottom=0.20, hspace=0.40)
+
+    return figure
+
+
+def format_threshold(value):
+    if value >= 1_000_000 and value % 1_000_000 == 0:
+        return f"{value // 1_000_000}M"
+    if value >= 1000 and value % 1000 == 0:
+        return f"{value // 1000}k"
+    return str(value)
 
 
 def add_intervals(axes, positions, values, estimates):

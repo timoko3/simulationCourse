@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <cstddef>
 #include <exception>
 #include <iostream>
 #include <string>
@@ -14,9 +15,14 @@ int main(int argc, char* argv[])
     std::string programPath;
     bool threaded = false;
     bool isDBT    = false;
+    
     app.add_option("program", programPath, "ELF program")->required();
+
     app.add_flag("--threaded", threaded, "Use threaded dispatch (requires clang::musttail)");
-    app.add_flag("--dbt", isDBT, "Use DBT optimization");
+    auto* dbtOption = app.add_flag("--dbt", isDBT, "Use DBT optimization");
+    std::size_t threshold = simulator::DEFAULT_DBT_THRESHOLD;
+    app.add_option("--threshold", threshold, "Interpreted block executions before DBT translation (0: translate immediately)")
+        ->capture_default_str()->check(CLI::NonNegativeNumber)->needs(dbtOption);
 
     try {
         app.parse(argc, argv);
@@ -28,7 +34,7 @@ int main(int argc, char* argv[])
     try {
         const auto dispatchMode = threaded ? simulator::DispatchMode::Threaded : simulator::DispatchMode::Switch;
         const auto execMode     = isDBT    ? simulator::ExecutionMode::DBT     : simulator::ExecutionMode::Standard;
-        simulator::FunctionalSimulator sim{dispatchMode, execMode};
+        simulator::FunctionalSimulator sim{dispatchMode, execMode, threshold};
 
         sim.loadProgram(programPath);
         const auto exitCode = sim.runSimulation();

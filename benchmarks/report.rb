@@ -1,4 +1,5 @@
 require 'json'
+require_relative 'threshold_report'
 
 module Benchmarks
     module Report
@@ -13,6 +14,8 @@ module Benchmarks
         MIN_INTERVAL_SAMPLES = 2
 
         def self.analyze(report)
+            return ThresholdReport.analyze(report) if report['mode'] == 'threshold-sweep'
+
             results = report.fetch('results').map do |result|
                 result.merge('statistics' => statistics(result.fetch('measurement').fetch('samples')))
             end
@@ -39,6 +42,8 @@ module Benchmarks
         end
 
         def self.print(report, output: $stdout)
+            return ThresholdReport.print(report, output: output) if report['mode'] == 'threshold-sweep'
+
             output.puts format(TABLE_FORMAT, *HEADERS)
 
             rows(report).each do |row|
@@ -47,6 +52,8 @@ module Benchmarks
         end
 
         def self.markdown(report)
+            return ThresholdReport.markdown(report) if report['mode'] == 'threshold-sweep'
+
             lines = [
                 '# Dispatch benchmarks', '', "Created: #{report.fetch('created_at')}", '',
                 "| #{HEADERS.join(' | ')} |",

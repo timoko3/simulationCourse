@@ -30,7 +30,8 @@ public:
 
     void interpretBlock(Memory& memory);
 
-    void run(Memory& memory, DispatchMode dispatchMode, ExecutionMode execMode);
+    void run(Memory& memory, DispatchMode dispatchMode, ExecutionMode execMode,
+             std::size_t threshold = DEFAULT_DBT_THRESHOLD);
 
     CpuState& getState(){ return state_; }
     const CpuState& getState() const { return state_; }

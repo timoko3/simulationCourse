@@ -9,7 +9,7 @@
 
 namespace simulator {
 
-void Cpu::run(Memory& memory, DispatchMode dispatchMode, ExecutionMode execMode)
+void Cpu::run(Memory& memory, DispatchMode dispatchMode, ExecutionMode execMode, std::size_t threshold)
 {
     if(execMode == ExecutionMode::Standard){
         if(dispatchMode == DispatchMode::Naive){
@@ -36,7 +36,7 @@ void Cpu::run(Memory& memory, DispatchMode dispatchMode, ExecutionMode execMode)
     else if(execMode == ExecutionMode::DBT){
         if(dispatchMode == DispatchMode::Switch){
             DbtExecutor dbtExecutor{DbtLib::LLVM};
-            dbtExecutor.run(*this, memory, 1);
+            dbtExecutor.run(*this, memory, threshold);
         }
         else{
             throw std::logic_error("for DBT dispatch must be switch");

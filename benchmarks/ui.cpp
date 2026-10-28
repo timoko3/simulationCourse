@@ -26,7 +26,7 @@ void printSample(std::ostream& output, const Sample& sample);
 
 InputResult readOptions(int argc, char** argv)
 {
-    CLI::App app{"Measure one execution mode or compare all four on the same ELF program"};
+    CLI::App app{"Measure execution modes and DBT threshold sweeps on an ELF program"};
     Options options;
     std::string mode;
     std::string program;
@@ -35,6 +35,10 @@ InputResult readOptions(int argc, char** argv)
 
     try {
         app.parse(argc, argv);
+
+        if (app.count("--thresholds") != 0 && mode != "threshold-sweep") {
+            throw CLI::ValidationError("--thresholds", "requires --mode threshold-sweep");
+        }
     } 
     catch (const CLI::ParseError& error) {
         return {std::nullopt, app.exit(error)};
@@ -51,8 +55,23 @@ void printResults(std::ostream& output, const Options& options,
 {
     output << std::setprecision(resultPrecision)
            << "{\"mode\":\"" << modeName(options.mode)
-           << "\",\"cache\":\"cold\",\"warmups\":" << options.warmups
-           << ",\"samples\":[";
+           << "\",\"cache\":\"cold\",\"warmups\":" << options.warmups;
+
+    if (options.mode == Mode::ThresholdSweep) {
+        output << ",\"thresholds\":[";
+
+        for (std::size_t index = 0; index < options.thresholds.size(); ++index) {
+            if (index != 0) {
+                output << ',';
+            }
+
+            output << options.thresholds[index];
+        }
+
+        output << ']';
+    }
+
+    output << ",\"samples\":[";
 
     bool first = true;
 
@@ -83,6 +102,7 @@ Mode getMode(const std::string& mode)
         {"switch", Mode::Switch},
         {"dbt", Mode::DBT},
         {"comparison", Mode::Comparison},
+        {"threshold-sweep", Mode::ThresholdSweep},
     };
 
     return modes.at(mode);
@@ -105,6 +125,9 @@ std::string_view modeName(Mode mode)
 
     case Mode::Comparison:
         return "comparison";
+
+    case Mode::ThresholdSweep:
+        return "threshold-sweep";
     }
 
     throw std::invalid_argument("Invalid benchmark mode");
@@ -114,20 +137,40 @@ void configureCommandLine(CLI::App& app, Options& options,
                           std::string& mode, std::string& program)
 {
     app.add_option("--mode", mode, "Execution mode")
-        ->required()->check(CLI::IsMember({"naive", "threaded", "switch", "dbt", "comparison"}));
+        ->required()->check(CLI::IsMember({"naive", "threaded", "switch", "dbt", "comparison", "threshold-sweep"}));
 
     app.add_option("--program", program, "Self-contained ELF program ending with exit code 0")
         ->required()->check(CLI::ExistingFile);
 
-    app.add_option("--samples", options.samples, "Measured executions (four modes in comparison)")
+    app.add_option("--samples", options.samples, "Measured rounds")
         ->check(CLI::Range(minSamples, maxSamples));
 
-    app.add_option("--warmups", options.warmups, "Unmeasured executions (four modes in comparison)")
+    app.add_option("--warmups", options.warmups, "Unmeasured warmup rounds")
         ->check(CLI::Range(minWarmups, maxWarmups));
+
+    app.add_option("--thresholds", options.thresholds, "DBT thresholds for threshold-sweep, separated by commas")
+        ->delimiter(',')->check(CLI::NonNegativeNumber)->capture_default_str();
 }
 
 void printSample(std::ostream& output, const Sample& sample)
 {
+    if (!sample.thresholdDbtNs.empty()) {
+        output << "{\"naive_ns\":" << *sample.naiveNs << ",\"dbt_ns\":{";
+        bool first = true;
+
+        for (const auto& [threshold, nanoseconds] : sample.thresholdDbtNs) {
+            if (!first) {
+                output << ',';
+            }
+
+            output << '"' << threshold << "\":" << nanoseconds;
+            first = false;
+        }
+
+        output << "}}";
+        return;
+    }
+
     output << '{';
 
     if (sample.naiveNs) {

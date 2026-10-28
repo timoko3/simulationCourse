@@ -41,8 +41,8 @@ module Benchmarks
             mode = options[:execution][:mode]
             raise OptionParser::MissingArgument, 'MODE' unless mode
 
-            if options[:plot] && mode != 'comparison'
-                raise OptionParser::InvalidArgument, '--plot requires comparison mode'
+            if options[:plot] && !%w[comparison threshold-sweep].include?(mode)
+                raise OptionParser::InvalidArgument, '--plot requires comparison or threshold-sweep mode'
             end
 
             request = options.fetch(:execution).reject { |key, _value| key == :binary }
@@ -59,7 +59,7 @@ module Benchmarks
             OptionParser.new do |cli|
                 cli.banner = 'Usage: ruby benchmarks/run.rb MODE [options]'
 
-                cli.on('--mode MODE', Suite::MODES, 'naive, threaded, switch, dbt or comparison') do |value|
+                cli.on('--mode MODE', Suite::MODES, 'naive, threaded, switch, dbt, comparison or threshold-sweep') do |value|
                     options[:execution][:mode] = value
                 end
 
@@ -77,6 +77,14 @@ module Benchmarks
 
                 cli.on('--warmups N', Integer, 'Override the C++ warmup count') do |value|
                     options[:execution][:warmups] = value
+                end
+
+                cli.on('--thresholds LIST', Array, "DBT thresholds for threshold-sweep (default: #{Suite::DEFAULT_THRESHOLDS.join(',')})") do |values|
+                    unless values.all? { |value| value.match?(/\A[0-9]+\z/) }
+                        raise OptionParser::InvalidArgument, 'thresholds must be nonnegative integers'
+                    end
+
+                    options[:execution][:thresholds] = values.map { |value| Integer(value, 10) }.sort
                 end
 
                 cli.on('--timeout SECONDS', Float, 'Timeout for each child process') do |value|

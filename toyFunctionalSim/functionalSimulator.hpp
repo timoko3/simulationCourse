@@ -18,13 +18,15 @@ class FunctionalSimulator : public Simulator {
     Memory memory_;
     DispatchMode dispatchMode_;
     ExecutionMode execMode_;
+    std::size_t threshold_;
 
     std::unique_ptr<Loader> loader_;
     bool isProgLoad = false;
 
 public:
     explicit FunctionalSimulator(DispatchMode dispatchMode = DispatchMode::Switch,
-                                 ExecutionMode execMode = ExecutionMode::Standard);
+                                 ExecutionMode execMode = ExecutionMode::Standard,
+                                 std::size_t threshold = DEFAULT_DBT_THRESHOLD);
 
     uint32_t runSimulation() override;
 
