@@ -7,7 +7,8 @@ require_relative 'report'
 
 module Benchmarks
     class Suite
-        MODES = %w[threaded switch comparison].freeze
+        MODES = %w[naive threaded switch dbt comparison threshold-sweep].freeze
+        DEFAULT_THRESHOLDS = [0, 1, 3, 10, 30, 100, 300, 1000].freeze
         WORKLOADS = File.join(__dir__, 'workloads').freeze
         DEFAULT_TIMEOUT = 60
         ERROR_TAIL_BYTES = 8192
@@ -16,7 +17,7 @@ module Benchmarks
             Dir.glob(File.join(WORKLOADS, '*.rb')).sort.map { |path| File.basename(path, '.rb') }
         end
 
-        def self.validate_request(mode:, samples: nil, warmups: nil, timeout: DEFAULT_TIMEOUT)
+        def self.validate_request(mode:, samples: nil, warmups: nil, timeout: DEFAULT_TIMEOUT, thresholds: nil)
             raise ArgumentError, "Unknown mode: #{mode}" unless MODES.include?(mode)
 
             if samples && !samples.positive?
@@ -28,6 +29,15 @@ module Benchmarks
             end
 
             raise ArgumentError, 'Timeout must be positive and finite' unless timeout.finite? && timeout.positive?
+
+            if thresholds
+                raise ArgumentError, '--thresholds requires threshold-sweep mode' unless mode == 'threshold-sweep'
+
+                valid = thresholds.is_a?(Array) && !thresholds.empty? && thresholds.uniq == thresholds &&
+                    thresholds.all? { |value| value.is_a?(Integer) && value >= 0 && value <= (2**64 - 1) }
+
+                raise ArgumentError, 'Thresholds must be distinct nonnegative 64-bit integers' unless valid
+            end
         end
 
         def self.select_cases(cases)
@@ -40,14 +50,15 @@ module Benchmarks
             selected
         end
 
-        def initialize(binary:, mode:, samples: nil, warmups: nil, timeout: DEFAULT_TIMEOUT)
-            self.class.validate_request(mode: mode, samples: samples, warmups: warmups, timeout: timeout)
+        def initialize(binary:, mode:, samples: nil, warmups: nil, timeout: DEFAULT_TIMEOUT, thresholds: nil)
+            self.class.validate_request(mode: mode, samples: samples, warmups: warmups, timeout: timeout, thresholds: thresholds)
 
             @binary = File.expand_path(binary)
             @mode = mode
             @samples = samples
             @warmups = warmups
             @timeout = timeout
+            @thresholds = (thresholds || DEFAULT_THRESHOLDS).sort if mode == 'threshold-sweep'
 
             unless File.file?(@binary) && File.executable?(@binary)
                 raise ArgumentError, "Benchmark executable not found: #{@binary}"
@@ -63,6 +74,11 @@ module Benchmarks
                 'binary_sha256' => Digest::SHA256.file(@binary).hexdigest,
                 'results' => []
             }
+
+            if @mode == 'threshold-sweep'
+                report['mode'] = @mode
+                report['thresholds'] = @thresholds
+            end
 
             directory = File.expand_path(output)
             FileUtils.mkdir_p(File.dirname(directory))
@@ -115,6 +131,7 @@ module Benchmarks
             command = [@binary, '--mode', @mode, '--program', program]
             command.concat(['--samples', @samples.to_s]) if @samples
             command.concat(['--warmups', @warmups.to_s]) if @warmups
+            command.concat(['--thresholds', @thresholds.join(',')]) if @thresholds
 
             command
         end
@@ -177,9 +194,12 @@ module Benchmarks
 
         def validate_measurement(measurement)
             expected_keys = {
+                'naive' => ['naive_ns'],
                 'switch' => ['switch_ns'],
                 'threaded' => ['threaded_ns'],
-                'comparison' => %w[switch_ns threaded_ns]
+                'dbt' => ['dbt_ns'],
+                'comparison' => %w[naive_ns switch_ns threaded_ns dbt_ns],
+                'threshold-sweep' => %w[naive_ns dbt_ns]
             }.fetch(@mode)
 
             valid = measurement.is_a?(Hash) && measurement['mode'] == @mode &&
@@ -190,9 +210,22 @@ module Benchmarks
             raise 'Unexpected sample count' if @samples && measurement['samples'].length != @samples
             raise 'Unexpected warmup count' if @warmups && measurement['warmups'] != @warmups
 
+            if @mode == 'threshold-sweep'
+                raise 'Unexpected thresholds' unless measurement['thresholds'] == @thresholds
+            end
+
             measurement['samples'].each do |sample|
-                valid = sample.is_a?(Hash) && sample.keys.sort == expected_keys.sort &&
-                    sample.values.all? { |value| value.is_a?(Numeric) && value.finite? && value.positive? }
+                valid = sample.is_a?(Hash) && sample.keys.sort == expected_keys.sort
+
+                if valid && @mode == 'threshold-sweep'
+                    times = sample['dbt_ns']
+                    valid = times.is_a?(Hash) && times.keys.sort == @thresholds.map(&:to_s).sort
+                    values = valid ? [sample['naive_ns'], *times.values] : []
+                else
+                    values = valid ? sample.values : []
+                end
+
+                valid &&= values.all? { |value| value.is_a?(Numeric) && value.finite? && value.positive? }
 
                 raise 'Invalid benchmark sample' unless valid
             end

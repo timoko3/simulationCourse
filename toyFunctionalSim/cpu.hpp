@@ -8,7 +8,7 @@
 #include "memory.hpp"
 #include "simplePipeline/simplePipeline.hpp"
 
-#include "dispatchMode.hpp"
+#include "simulatorSettings.hpp"
 
 #include <cache/cacheLIRS.h>
 
@@ -24,12 +24,14 @@ class Cpu{
     iCache iCache_{I_CACHE_SIZE};
 
     BasicBlock createBasicBlock(Memory& memory, Addr startPc);
+    void stepInstruction(Memory& memory);
 public:
     const BasicBlock& getBasicBlock(Memory& memory, Addr startPc);
 
-    void stepBlock(Memory& memory);
+    void interpretBlock(Memory& memory);
 
-    void run(Memory& memory, DispatchMode dispatchMode);
+    void run(Memory& memory, DispatchMode dispatchMode, ExecutionMode execMode,
+             std::size_t threshold = DEFAULT_DBT_THRESHOLD);
 
     CpuState& getState(){ return state_; }
     const CpuState& getState() const { return state_; }

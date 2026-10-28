@@ -14,7 +14,6 @@ struct Memory;
 
 class ThreadedExecutor {
 public:
-
     static void run(Cpu& cpu, Memory& memory);
 
 private:
