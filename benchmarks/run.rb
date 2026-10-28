@@ -53,7 +53,7 @@ module Benchmarks
             OptionParser.new do |cli|
                 cli.banner = 'Usage: ruby benchmarks/run.rb MODE [options]'
 
-                cli.on('--mode MODE', Suite::MODES, 'threaded, switch or comparison') do |value|
+                cli.on('--mode MODE', Suite::MODES, 'threaded, switch, dbt or comparison') do |value|
                     options[:execution][:mode] = value
                 end
 

@@ -26,7 +26,7 @@ void printSample(std::ostream& output, const Sample& sample);
 
 InputResult readOptions(int argc, char** argv)
 {
-    CLI::App app{"Measure one dispatch mode or compare both on the same ELF program"};
+    CLI::App app{"Measure one execution mode or compare all three on the same ELF program"};
     Options options;
     std::string mode;
     std::string program;
@@ -80,6 +80,7 @@ Mode getMode(const std::string& mode)
     const std::map<std::string, Mode> modes{
         {"threaded", Mode::Threaded},
         {"switch", Mode::Switch},
+        {"dbt", Mode::DBT},
         {"comparison", Mode::Comparison},
     };
 
@@ -95,6 +96,9 @@ std::string_view modeName(Mode mode)
     case Mode::Switch:
         return "switch";
 
+    case Mode::DBT:
+        return "dbt";
+
     case Mode::Comparison:
         return "comparison";
     }
@@ -105,16 +109,16 @@ std::string_view modeName(Mode mode)
 void configureCommandLine(CLI::App& app, Options& options,
                           std::string& mode, std::string& program)
 {
-    app.add_option("--mode", mode, "Dispatch mode")
-        ->required()->check(CLI::IsMember({"threaded", "switch", "comparison"}));
+    app.add_option("--mode", mode, "Execution mode")
+        ->required()->check(CLI::IsMember({"threaded", "switch", "dbt", "comparison"}));
 
     app.add_option("--program", program, "Self-contained ELF program ending with exit code 0")
         ->required()->check(CLI::ExistingFile);
 
-    app.add_option("--samples", options.samples, "Measured executions (pairs in comparison)")
+    app.add_option("--samples", options.samples, "Measured executions (triples in comparison)")
         ->check(CLI::Range(minSamples, maxSamples));
 
-    app.add_option("--warmups", options.warmups, "Unmeasured executions (pairs in comparison)")
+    app.add_option("--warmups", options.warmups, "Unmeasured executions (triples in comparison)")
         ->check(CLI::Range(minWarmups, maxWarmups));
 }
 
@@ -132,6 +136,14 @@ void printSample(std::ostream& output, const Sample& sample)
 
     if (sample.threadedNs) {
         output << "\"threaded_ns\":" << *sample.threadedNs;
+    }
+
+    if (sample.dbtNs) {
+        if (sample.switchNs || sample.threadedNs) {
+            output << ',';
+        }
+
+        output << "\"dbt_ns\":" << *sample.dbtNs;
     }
 
     output << '}';

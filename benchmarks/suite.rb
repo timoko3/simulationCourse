@@ -7,7 +7,7 @@ require_relative 'report'
 
 module Benchmarks
     class Suite
-        MODES = %w[threaded switch comparison].freeze
+        MODES = %w[threaded switch dbt comparison].freeze
         WORKLOADS = File.join(__dir__, 'workloads').freeze
         DEFAULT_TIMEOUT = 60
         ERROR_TAIL_BYTES = 8192
@@ -179,7 +179,8 @@ module Benchmarks
             expected_keys = {
                 'switch' => ['switch_ns'],
                 'threaded' => ['threaded_ns'],
-                'comparison' => %w[switch_ns threaded_ns]
+                'dbt' => ['dbt_ns'],
+                'comparison' => %w[switch_ns threaded_ns dbt_ns]
             }.fetch(@mode)
 
             valid = measurement.is_a?(Hash) && measurement['mode'] == @mode &&

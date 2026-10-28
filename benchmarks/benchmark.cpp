@@ -1,6 +1,7 @@
 #include "benchmark.hpp"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <stdexcept>
 #include <string>
@@ -25,7 +26,8 @@ void validateOptions(const Options& options);
 Sample runRound(Mode mode, const std::filesystem::path& program, int round);
 Sample runComparison(const std::filesystem::path& program, int round);
 
-Execution execute(const std::filesystem::path& program, DispatchMode mode);
+Execution execute(const std::filesystem::path& program, DispatchMode mode,
+                  ExecutionMode executionMode = ExecutionMode::Standard);
 double measureExecution(FunctionalSimulator& simulator);
 
 void verifyEqual(const Execution& first, const Execution& second);
@@ -56,10 +58,14 @@ Sample runRound(Mode mode, const std::filesystem::path& program, int round)
 {
     switch (mode) {
         case Mode::Switch:
-            return {execute(program, DispatchMode::Switch).nanoseconds, std::nullopt};
+            return {execute(program, DispatchMode::Switch).nanoseconds, std::nullopt, std::nullopt};
 
         case Mode::Threaded:
-            return {std::nullopt, execute(program, DispatchMode::Threaded).nanoseconds};
+            return {std::nullopt, execute(program, DispatchMode::Threaded).nanoseconds, std::nullopt};
+
+        case Mode::DBT:
+            return {std::nullopt, std::nullopt,
+                    execute(program, DispatchMode::Switch, ExecutionMode::DBT).nanoseconds};
 
         case Mode::Comparison:
             return runComparison(program, round);
@@ -70,22 +76,25 @@ Sample runRound(Mode mode, const std::filesystem::path& program, int round)
 
 Sample runComparison(const std::filesystem::path& program, int round)
 {
-    const bool isSwitch = round % 2 == 0;
-    const auto firstMode = isSwitch ? DispatchMode::Switch : DispatchMode::Threaded;
-    const auto secondMode = isSwitch ? DispatchMode::Threaded : DispatchMode::Switch;
+    std::array<std::optional<Execution>, 3> executions;
 
-    const Execution first = execute(program, firstMode);
-    const Execution second = execute(program, secondMode);
+    for (std::size_t offset = 0; offset < executions.size(); ++offset) {
+        const auto index = (static_cast<std::size_t>(round) + offset) % executions.size();
+        const auto dispatchMode = index == 1 ? DispatchMode::Threaded : DispatchMode::Switch;
+        const auto executionMode = index == 2 ? ExecutionMode::DBT : ExecutionMode::Standard;
 
-    verifyEqual(first, second);
+        executions[index] = execute(program, dispatchMode, executionMode);
+    }
 
-    return isSwitch ? Sample{first.nanoseconds, second.nanoseconds}
-                       : Sample{second.nanoseconds, first.nanoseconds};
+    verifyEqual(*executions[0], *executions[1]);
+    verifyEqual(*executions[0], *executions[2]);
+
+    return {executions[0]->nanoseconds, executions[1]->nanoseconds, executions[2]->nanoseconds};
 }
 
-Execution execute(const std::filesystem::path& program, DispatchMode mode)
+Execution execute(const std::filesystem::path& program, DispatchMode mode, ExecutionMode executionMode)
 {
-    FunctionalSimulator simulator{mode};
+    FunctionalSimulator simulator{mode, executionMode};
     simulator.loadProgram(program);
 
     const double nanoseconds = measureExecution(simulator);
@@ -115,7 +124,7 @@ void verifyEqual(const Execution& first, const Execution& second)
 
     if (first.state.pc != second.state.pc || !registersEqual ||
         first.memory.data != second.memory.data) {
-        throw std::runtime_error("Dispatch modes produced different CPU or memory states");
+        throw std::runtime_error("Execution modes produced different CPU or memory states");
     }
 }
 
