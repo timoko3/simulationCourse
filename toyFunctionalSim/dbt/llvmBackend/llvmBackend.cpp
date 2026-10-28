@@ -7,6 +7,7 @@
 #include <string>
 #include <utility>
 
+#include <llvm/Config/llvm-config.h>
 #include <llvm/ExecutionEngine/Orc/LLJIT.h>
 #include <llvm/ExecutionEngine/Orc/Core.h>
 #include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
@@ -18,6 +19,9 @@
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/Error.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Transforms/Scalar/DeadStoreElimination.h>
+#include <llvm/Transforms/Scalar/EarlyCSE.h>
 
 namespace simulator{
 
@@ -52,6 +56,19 @@ LlvmBackend::LlvmBackend()
                                  llvm::toString(jit.takeError()));
     }
     jit_ = std::move(*jit);
+
+    passBuilder_.registerModuleAnalyses(moduleAnalyses_);
+    passBuilder_.registerFunctionAnalyses(functionAnalyses_);
+    functionAnalyses_.registerPass([this] {
+        return llvm::ModuleAnalysisManagerFunctionProxy(moduleAnalyses_);
+    });
+    moduleAnalyses_.registerPass([this] {
+        return llvm::FunctionAnalysisManagerModuleProxy(functionAnalyses_);
+    });
+
+    passes_.addPass(llvm::InstCombinePass());
+    passes_.addPass(llvm::EarlyCSEPass());
+    passes_.addPass(llvm::DSEPass());
 
     llvm::orc::SymbolMap runtimeSymbols;
     runtimeSymbols[jit_->mangleAndIntern(llvmEmitters::READ_WORD_SYMBOL)] = {
@@ -98,7 +115,11 @@ LlvmBackend::translate(Addr pc, const BasicBlock& block) {
     auto module = std::make_unique<llvm::Module>("translationEnvironment", *context);
 
     module->setDataLayout(jit_->getDataLayout());
+#if LLVM_VERSION_MAJOR >= 21
+    module->setTargetTriple(jit_->getTargetTriple());
+#else
     module->setTargetTriple(jit_->getTargetTriple().str());
+#endif
 
     llvm::IRBuilder<> builder(*context);
 
@@ -124,6 +145,11 @@ LlvmBackend::translate(Addr pc, const BasicBlock& block) {
         emitContext.guestPc += sizeof(Word);
     }
     builder.CreateRetVoid(); // TODO: jump next block
+
+    passes_.run(*function, functionAnalyses_);
+
+    functionAnalyses_.clear();
+    moduleAnalyses_.clear();
 
     auto tracker = jit_->getMainJITDylib().createResourceTracker();
     auto resources = std::make_shared<LlvmCodeResources>(jit_, tracker);

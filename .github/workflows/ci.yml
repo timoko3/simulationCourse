@@ -21,8 +21,12 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 llvm-18-dev libzstd-dev ninja-build
       - name: Configure
-        run: cmake --preset debug
+        run: cmake --preset debug -DSIMCOURSE_FETCH_LLVM=OFF -DLLVM_DIR="$(llvm-config-18 --cmakedir)"
       - name: Build
         run: cmake --build --preset debug --parallel 2
       - name: Test

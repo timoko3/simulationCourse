@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include <llvm/Passes/PassBuilder.h>
+
 #include "../backend.hpp"
 #include "../instructionEmitters.hpp"
 
@@ -20,6 +22,11 @@ class LlvmBackend : public TranslationBackend {
 
     std::shared_ptr<llvm::orc::LLJIT> jit_;
     EmitterTable<EmitContext> emitters_;
+
+    llvm::FunctionAnalysisManager functionAnalyses_;
+    llvm::ModuleAnalysisManager moduleAnalyses_;
+    llvm::PassBuilder passBuilder_;
+    llvm::FunctionPassManager passes_;
 
 
 public:
