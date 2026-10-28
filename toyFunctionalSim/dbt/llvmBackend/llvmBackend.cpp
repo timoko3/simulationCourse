@@ -1,11 +1,14 @@
 #include "llvmBackend.hpp"
 #include "instructionEmitters.hpp"
+#include "runtimeEmitters.hpp"
+#include "../runtime.hpp"
 
 #include <stdexcept>
 #include <string>
 #include <utility>
 
 #include <llvm/ExecutionEngine/Orc/LLJIT.h>
+#include <llvm/ExecutionEngine/Orc/Core.h>
 #include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Function.h>
@@ -50,28 +53,39 @@ LlvmBackend::LlvmBackend()
     }
     jit_ = std::move(*jit);
 
-    emitters_.set(InstrKind::I_ADD,
-                  &llvmEmitters::emitRegRegReg<llvmEmitters::AddOperation>);
-    emitters_.set(InstrKind::I_BEQ, &llvmEmitters::emitBeq);
-    emitters_.set(InstrKind::I_ADDI,
-                  &llvmEmitters::emitRegRegImm<llvmEmitters::AddOperation>);
-    emitters_.set(InstrKind::I_LD, &llvmEmitters::emitLd);
-    emitters_.set(InstrKind::I_BEXT,
-                  &llvmEmitters::emitRegRegReg<llvmEmitters::BitExtractOperation>);
-    emitters_.set(InstrKind::I_LI,
-                  &llvmEmitters::emitRegImm<llvmEmitters::CopyOperation>);
-    emitters_.set(InstrKind::I_J, &llvmEmitters::emitJ);
-    emitters_.set(InstrKind::I_ST, &llvmEmitters::emitSt);
-    emitters_.set(InstrKind::I_LDP, &llvmEmitters::emitLdp);
-    emitters_.set(InstrKind::I_CLS,
-                  &llvmEmitters::emitRegReg<llvmEmitters::CountLeadingOnesOperation>);
-    emitters_.set(InstrKind::I_SBIT,
-                  &llvmEmitters::emitRegImm<llvmEmitters::SetBitOperation, &Instruction::src2>);
-    emitters_.set(InstrKind::I_USAT,
-                  &llvmEmitters::emitRegRegImm<llvmEmitters::UnsignedSaturateOperation>);
-    emitters_.set(InstrKind::I_XOR,
-                  &llvmEmitters::emitRegRegReg<llvmEmitters::XorOperation>);
-    emitters_.set(InstrKind::I_LDREG, &llvmEmitters::emitLdReg);
+    llvm::orc::SymbolMap runtimeSymbols;
+    runtimeSymbols[jit_->mangleAndIntern(llvmEmitters::READ_WORD_SYMBOL)] = {
+        llvm::orc::ExecutorAddr::fromPtr(&dbtRuntime::readGuestWord),
+        llvm::JITSymbolFlags::Exported | llvm::JITSymbolFlags::Callable
+    };
+    runtimeSymbols[jit_->mangleAndIntern(llvmEmitters::WRITE_WORD_SYMBOL)] = {
+        llvm::orc::ExecutorAddr::fromPtr(&dbtRuntime::writeGuestWord),
+        llvm::JITSymbolFlags::Exported | llvm::JITSymbolFlags::Callable
+    };
+    runtimeSymbols[jit_->mangleAndIntern(llvmEmitters::SYSCALL_SYMBOL)] = {
+        llvm::orc::ExecutorAddr::fromPtr(&dbtRuntime::handleSyscall),
+        llvm::JITSymbolFlags::Exported | llvm::JITSymbolFlags::Callable
+    };
+
+    if (auto error = jit_->getMainJITDylib().define(
+            llvm::orc::absoluteSymbols(std::move(runtimeSymbols)))) {
+        throw std::runtime_error("Failed to register JIT runtime functions: " + llvm::toString(std::move(error)));
+    }
+
+    emitters_.set(InstrKind::I_ADD,     &llvmEmitters::emitRegRegReg<llvmEmitters::AddOperation>);
+    emitters_.set(InstrKind::I_BEQ,     &llvmEmitters::emitBeq);
+    emitters_.set(InstrKind::I_ADDI,    &llvmEmitters::emitRegRegImm<llvmEmitters::AddOperation>);
+    emitters_.set(InstrKind::I_LD,      &llvmEmitters::emitLoad<&llvmEmitters::emitRegImmAddress<>>);
+    emitters_.set(InstrKind::I_BEXT,    &llvmEmitters::emitRegRegReg<llvmEmitters::BitExtractOperation>);
+    emitters_.set(InstrKind::I_LI,      &llvmEmitters::emitRegImm<llvmEmitters::CopyOperation>);
+    emitters_.set(InstrKind::I_J,       &llvmEmitters::emitJ);
+    emitters_.set(InstrKind::I_ST,      &llvmEmitters::emitStore<&llvmEmitters::emitRegImmAddress<&Instruction::dst>>);
+    emitters_.set(InstrKind::I_LDP,     &llvmEmitters::emitLoadPair<&llvmEmitters::emitRegImmAddress<>>);
+    emitters_.set(InstrKind::I_CLS,     &llvmEmitters::emitRegReg<llvmEmitters::CountLeadingOnesOperation>);
+    emitters_.set(InstrKind::I_SBIT,    &llvmEmitters::emitRegImm<llvmEmitters::SetBitOperation, &Instruction::src2>);
+    emitters_.set(InstrKind::I_USAT,    &llvmEmitters::emitRegRegImm<llvmEmitters::UnsignedSaturateOperation>);
+    emitters_.set(InstrKind::I_XOR,     &llvmEmitters::emitRegRegReg<llvmEmitters::XorOperation>);
+    emitters_.set(InstrKind::I_LDREG,   &llvmEmitters::emitLoad<&llvmEmitters::emitRegRegAddress<>>);
     emitters_.set(InstrKind::I_SYSCALL, &llvmEmitters::emitSyscall);
 }
 
@@ -93,6 +107,7 @@ LlvmBackend::translate(Addr pc, const BasicBlock& block) {
 
     const std::string functionName = "block_" + std::to_string(pc);
     auto* function = llvm::Function::Create(signature, llvm::Function::ExternalLinkage, functionName, module.get());
+    function->setUWTableKind(llvm::UWTableKind::Async);
 
     auto* entry = llvm::BasicBlock::Create(*context, "entry", function);
     builder.SetInsertPoint(entry);

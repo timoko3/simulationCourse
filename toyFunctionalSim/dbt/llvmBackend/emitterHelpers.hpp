@@ -1,9 +1,11 @@
 #pragma once
 
 #include <cstddef>
+#include <stdexcept>
 #include <type_traits>
 
 #include "emitContext.hpp"
+#include "isa/isa.hpp"
 #include "toyFunctionalSim/cpuState.hpp"
 
 namespace simulator::llvmEmitters {
@@ -38,6 +40,30 @@ inline llvm::Value* loadPc(Context& ctx) {
 
 inline void storePc(Context& ctx, llvm::Value* value) {
     ctx.builder.CreateStore(value, pcAddress(ctx));
+}
+
+template<Word Instruction::* ImmediateField = &Instruction::src2>
+llvm::Value* emitRegImmAddress(Context& ctx, const Instruction& instruction) {
+    auto* base = loadReg(ctx, instruction.src1);
+    auto* offset = immediate(ctx, instruction.*ImmediateField);
+
+    return ctx.builder.CreateAdd(base, offset);
+}
+
+template<Word Instruction::* RegisterField = &Instruction::src2>
+llvm::Value* emitRegRegAddress(Context& ctx, const Instruction& instruction) {
+    auto* base = loadReg(ctx, instruction.src1);
+    auto* offset = loadReg(ctx, instruction.*RegisterField);
+
+    return ctx.builder.CreateAdd(base, offset);
+}
+
+inline void requireImmediateBitIndex(llvm::Value* value) {
+    const auto* index = llvm::dyn_cast<llvm::ConstantInt>(value);
+
+    if (!index || index->getZExtValue() >= 32) {
+        throw std::invalid_argument("Bit index or saturation width must be below 32");
+    }
 }
 
 }

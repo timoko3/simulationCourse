@@ -1,14 +1,10 @@
 #pragma once
 
-#include <stdexcept>
-
 #include <llvm/IR/Intrinsics.h>
 
 #include "emitterTemplates.hpp"
 
 namespace simulator::llvmEmitters {
-
-inline void requireImmediateBitIndex(llvm::Value* value);
 
 struct AddOperation {
     llvm::Value* operator()(llvm::IRBuilder<>& builder,
@@ -30,12 +26,15 @@ struct CopyOperation {
     }
 };
 
-inline void emitBeq(Context&, const Instruction&) {
-    throw std::runtime_error("LLVM emitter BEQ is not implemented yet");
-}
+inline void emitBeq(Context& ctx, const Instruction& instruction) {
+    auto* lhs = loadReg(ctx, instruction.src1);
+    auto* rhs = loadReg(ctx, instruction.src2);
+    auto* condition = ctx.builder.CreateICmpEQ(lhs, rhs);
 
-inline void emitLd(Context&, const Instruction&) {
-    throw std::runtime_error("LLVM emitter LD is not implemented yet");
+    auto* offset = immediate(ctx, instruction.dst << 2);
+    auto* target = ctx.builder.CreateAdd(loadPc(ctx), offset);
+
+    ctx.nextPc = ctx.builder.CreateSelect(condition, target, ctx.nextPc);
 }
 
 struct BitExtractOperation {
@@ -61,16 +60,11 @@ struct BitExtractOperation {
     }
 };
 
-inline void emitJ(Context&, const Instruction&) {
-    throw std::runtime_error("LLVM emitter J is not implemented yet");
-}
+inline void emitJ(Context& ctx, const Instruction& instruction) {
+    auto* region = ctx.builder.CreateAnd(loadPc(ctx), ctx.builder.getInt32(0xF0000000));
+    auto* target = immediate(ctx, instruction.src1 << 2);
 
-inline void emitSt(Context&, const Instruction&) {
-    throw std::runtime_error("LLVM emitter ST is not implemented yet");
-}
-
-inline void emitLdp(Context&, const Instruction&) {
-    throw std::runtime_error("LLVM emitter LDP is not implemented yet");
+    ctx.nextPc = ctx.builder.CreateOr(region, target);
 }
 
 struct CountLeadingOnesOperation {
@@ -99,20 +93,8 @@ struct UnsignedSaturateOperation {
     }
 };
 
-inline void emitLdReg(Context&, const Instruction&) {
-    throw std::runtime_error("LLVM emitter LDREG is not implemented yet");
-}
-
-inline void emitSyscall(Context&, const Instruction&) {
-    throw std::runtime_error("LLVM emitter SYSCALL is not implemented yet");
-}
-
-inline void requireImmediateBitIndex(llvm::Value* value) {
-    const auto* index = llvm::dyn_cast<llvm::ConstantInt>(value);
-
-    if (!index || index->getZExtValue() >= 32) {
-        throw std::invalid_argument("Bit index or saturation width must be below 32");
-    }
+inline void emitSyscall(Context& ctx, const Instruction& instruction) {
+    emitGuestSyscall(ctx, immediate(ctx, instruction.src1));
 }
 
 }
