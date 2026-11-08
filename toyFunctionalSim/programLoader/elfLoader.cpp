@@ -26,6 +26,14 @@ ElfLoader::loadProgram(const std::filesystem::path& filePath, Memory& memory, Cp
         }
     }
 
+    for (const auto& segment : elf.segments) {
+        if (segment->get_type() == ELFIO::PT_LOAD && (segment->get_flags() & ELFIO::PF_X) != 0) {
+            memory.protectCode(
+                static_cast<Addr>(segment->get_virtual_address()),
+                static_cast<std::size_t>(segment->get_memory_size()));
+        }
+    }
+
 }    
 
 void

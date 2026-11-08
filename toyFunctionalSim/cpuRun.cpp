@@ -1,5 +1,6 @@
 #include "cpu.hpp"
 #include "dbtExecutor.hpp"
+#include "memory/permissionFaultHandler.hpp"
 
 #include <stdexcept>
 
@@ -11,6 +12,8 @@ namespace simulator {
 
 void Cpu::run(Memory& memory, DispatchMode dispatchMode, ExecutionMode execMode, std::size_t threshold)
 {
+    PermissionFaultHandler faultHandler(memory);
+
     if(execMode == ExecutionMode::Standard){
         if(dispatchMode == DispatchMode::Naive){
             while (true) {

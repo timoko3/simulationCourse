@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <vector>
 
 #include "isa/definitions.hpp"
 
@@ -24,10 +25,12 @@ public:
 
     static std::size_t pageSize();
     void protect(std::size_t offset, std::size_t byteCount, Access access);
+    bool isWriteProtected(std::size_t offset, std::size_t byteCount) const;
 
 private:
     Byte* data_ = nullptr;
     std::size_t size_;
+    std::vector<Byte> protectedPages_;
 };
 
 }

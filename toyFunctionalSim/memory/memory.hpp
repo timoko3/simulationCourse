@@ -29,6 +29,9 @@ struct Memory{
     std::size_t getPageSize() const;
     void protectCode(Addr addr, std::size_t byteCount);
     void unprotectCode(Addr addr, std::size_t byteCount);
+    bool isWriteProtected(Addr addr, std::size_t byteCount) const {
+        return data_.isWriteProtected(addr, byteCount);
+    }
 
 private:
     MappedMemory data_;

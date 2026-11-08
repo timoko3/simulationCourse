@@ -1,5 +1,6 @@
 #include "mappedMemory.hpp"
 
+#include <algorithm>
 #include <cerrno>
 #include <cstring>
 #include <new>
@@ -11,7 +12,8 @@
 
 namespace simulator {
 
-MappedMemory::MappedMemory(std::size_t byteCount) : size_(byteCount)
+MappedMemory::MappedMemory(std::size_t byteCount)
+    : size_(byteCount), protectedPages_(byteCount / pageSize() + (byteCount % pageSize() != 0), 0)
 {
     if (size_ == 0) {
         return;
@@ -40,7 +42,8 @@ MappedMemory::MappedMemory(const MappedMemory& other) : MappedMemory(other.size_
 }
 
 MappedMemory::MappedMemory(MappedMemory&& other) noexcept
-    : data_(std::exchange(other.data_, nullptr)), size_(std::exchange(other.size_, 0)) {}
+    : data_(std::exchange(other.data_, nullptr)), size_(std::exchange(other.size_, 0)),
+      protectedPages_(std::move(other.protectedPages_)) {}
 
 std::size_t MappedMemory::pageSize()
 {
@@ -69,6 +72,26 @@ void MappedMemory::protect(std::size_t offset, std::size_t byteCount, Access acc
     if (mprotect(data_ + pageStart, offset + byteCount - pageStart, protection) != 0) {
         throw std::system_error(errno, std::generic_category(), "Cannot change page protection");
     }
+
+    const auto first = pageStart / pageSize();
+    const auto last = (offset + byteCount - 1) / pageSize();
+    std::fill(protectedPages_.begin() + first, protectedPages_.begin() + last + 1,
+              access == Access::ReadOnly);
+}
+
+bool MappedMemory::isWriteProtected(std::size_t offset, std::size_t byteCount) const
+{
+    if (offset > size_ || byteCount > size_ - offset) {
+        throw std::out_of_range("Memory protection range is out of bounds");
+    }
+    if (byteCount == 0) {
+        return false;
+    }
+
+    const auto first = offset / pageSize();
+    const auto last = (offset + byteCount - 1) / pageSize();
+    return std::any_of(protectedPages_.begin() + first, protectedPages_.begin() + last + 1,
+                       [](Byte protectedPage) { return protectedPage != 0; });
 }
 
 }
