@@ -17,6 +17,7 @@ add_executable(simcourse_tests
     cpuCacheTests.cpp
     extractorTests.cpp
     fibonacciTests.cpp
+    smcTests.cpp
     isaTests/addTests.cpp
     isaTests/addiTests.cpp
     isaTests/beqTests.cpp

@@ -8,11 +8,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791708664,
-        "narHash": "sha256-tWUuKL4acrLjLOGnu1SrzHjrsg1h9soTQ5kFf6w7LRM=",
+        "lastModified": 1792938715,
+        "narHash": "sha256-mt39lIwhrEgLnYl13UcyU3BFVM3NMBS1fxtCbVnfRjo=",
         "owner": "timoko3",
         "repo": "cacheResearch",
-        "rev": "1af2bd220fb053ce786227b1334b277b3d865de9",
+        "rev": "d304b3d8fcddf7f68ca8ee1a6a958233bfdf4148",
         "type": "github"
       },
       "original": {
@@ -24,11 +24,11 @@
     "general-functions": {
       "flake": false,
       "locked": {
-        "lastModified": 1791565078,
-        "narHash": "sha256-8/xTSx/50TMP1pSfEc2VW11jD6DIjeesrFmlrqQTeZs=",
+        "lastModified": 1791907991,
+        "narHash": "sha256-UG7Um1NFUDXYSpnnrQIMssdwcYoXNEKOyujBz/DhVM4=",
         "owner": "timoko3",
         "repo": "generalFunctions",
-        "rev": "a46b47412a4996a2668a0bd525507702040052f2",
+        "rev": "61bfa8aafa25d0dc9154efd91a7c0687c58af5b3",
         "type": "github"
       },
       "original": {

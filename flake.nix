@@ -39,6 +39,7 @@
             doCheck = false;
           };
           gtest = pkgs.gtest.override { stdenv = pkgs.clangStdenv; };
+          llvm = pkgs.llvmPackages_23.llvm;
           cache = pkgs.cache-research-library;
         };
       packagesFor =
@@ -70,6 +71,8 @@
                 dependencies.elfio
                 dependencies.cache
                 dependencies.gtest
+                dependencies.llvm
+                dependencies.llvm.dev
               ];
               cmakeFlags = [
                 "-DCMAKE_BUILD_TYPE=Release"
@@ -110,7 +113,7 @@
               pkgs.git
               pkgs.python3
               pkgs.ruby
-              pkgs.llvmPackages.clang-tools
+              pkgs.llvmPackages_23.clang-tools
               pkgs.nixfmt
             ];
           };

@@ -2,12 +2,20 @@
 
 namespace simulator{
 
+void Cpu::stepInstruction(Memory& memory) {
+    const Word raw = simpPipeline_.fetch_.instrFetch(memory, state_.pc);
+    const Instruction instruction = simpPipeline_.decode_.instrDecode(raw);
+
+    simpPipeline_.exec_.execInstr(state_, memory, instruction);
+}
+
 void
-Cpu::stepBlock(Memory& memory){
+Cpu::interpretBlock(Memory& memory){
     const BasicBlock& curBasicBlock = getBasicBlock(memory, state_.pc);
 
+    memory.protectCode(state_.pc, curBasicBlock.size() * sizeof(Word));
     for(const auto& instr : curBasicBlock){
-        simpPipeline_.exec_.execInstr(state_, memory, instr);
+        executeInstruction(memory, instr);
     }
 }
 
@@ -15,7 +23,7 @@ const BasicBlock&
 Cpu::getBasicBlock(Memory& memory, Addr startPc) {
     // The cache copies the loaded block before this local storage expires.
     BasicBlock loadedBlock;
-    return iCache_.lookupUpdate(startPc, 
+    return iCache_->lookupUpdate(startPc,
                                 [this, &memory, &loadedBlock](Addr pc) -> const BasicBlock& {
                                     loadedBlock = createBasicBlock(memory, pc);
                                     return loadedBlock;
@@ -27,7 +35,6 @@ BasicBlock Cpu::createBasicBlock(Memory& memory, Addr startPc) {
     Addr interBlockPc = startPc;
 
     Instruction decodedInstr = {};
-    decodedInstr.instrKind = InstrKind::I_NOP;
 
     while( decodedInstr.instrKind != InstrKind::I_BEQ &&
            decodedInstr.instrKind != InstrKind::I_J   &&
@@ -41,6 +48,16 @@ BasicBlock Cpu::createBasicBlock(Memory& memory, Addr startPc) {
     }
 
     return block;
+}
+
+void Cpu::executeInstruction(Memory& memory, const Instruction& instruction)
+{
+    simpPipeline_.exec_.execInstr(state_, memory, instruction);
+}
+
+void Cpu::invalidateCode()
+{
+    iCache_ = std::make_unique<iCache>(I_CACHE_SIZE);
 }
 
 }

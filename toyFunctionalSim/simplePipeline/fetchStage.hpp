@@ -2,7 +2,7 @@
 
 #include "isa/definitions.hpp"
 
-#include "memory.hpp"
+#include "memory/memory.hpp"
 
 namespace simulator{
 

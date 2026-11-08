@@ -1,12 +1,14 @@
 #pragma once
 
 #include <filesystem>
+#include <cstddef>
+#include <map>
 #include <optional>
 #include <vector>
 
 namespace benchmark {
 
-enum class Mode { Threaded, Switch, Comparison };
+enum class Mode { Naive, Threaded, Switch, DBT, Comparison, ThresholdSweep };
 
 inline constexpr int defaultSamples = 9;
 inline constexpr int minSamples = 1;
@@ -21,11 +23,15 @@ struct Options {
     std::filesystem::path program;
     int samples = defaultSamples;
     int warmups = defaultWarmups;
+    std::vector<std::size_t> thresholds{0, 1, 3, 10, 30, 100, 300, 1000};
 };
 
 struct Sample {
     std::optional<double> switchNs;
     std::optional<double> threadedNs;
+    std::optional<double> dbtNs;
+    std::optional<double> naiveNs;
+    std::map<std::size_t, double> thresholdDbtNs{};
 };
 
 std::vector<Sample> run(const Options& options);

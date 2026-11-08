@@ -10,6 +10,7 @@
       "cacheVariables": {
         "CMAKE_CXX_COMPILER": "clang++",
         "BUILD_TESTING": "ON",
+        "SIMCOURSE_FETCH_LLVM": "OFF",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
