@@ -14,18 +14,21 @@ namespace simulator {
 void Cpu::run(Memory& memory, DispatchMode dispatchMode, ExecutionMode execMode, std::size_t threshold)
 {
     if(execMode == ExecutionMode::Standard){
+        if(dispatchMode == DispatchMode::Naive){
+            memory.unprotectCode(0, memory.size());
+
+            while (true) {
+                stepInstruction(memory);
+            }
+        }
+
         PermissionFaultHandler faultHandler(memory);
         SmcController smcController(*this, memory);
 
         while (true) {
             try {
                 faultHandler.execute([&] {
-                    if(dispatchMode == DispatchMode::Naive){
-                        while (true) {
-                            stepInstruction(memory);
-                        }
-                    }
-                    else if(dispatchMode == DispatchMode::Switch){
+                    if(dispatchMode == DispatchMode::Switch){
                         while (true) {
                             interpretBlock(memory);
                         }

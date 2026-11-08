@@ -35,6 +35,7 @@ TEST(SmcTest, ModifiesCurrentBlock)
                              loadImmediate(9, SYSCALL_EXIT), 0b010100u});
         cpu.getState().setReg(1, 8);
         cpu.getState().setReg(2, replacement);
+        memory.protectCode(0, 5 * sizeof(Word));
 
         runToExit(cpu, memory, mode);
 
@@ -42,7 +43,7 @@ TEST(SmcTest, ModifiesCurrentBlock)
         EXPECT_EQ(cpu.getState().getReg(4), 1u);
         EXPECT_EQ(memory.read32(8), replacement);
         EXPECT_EQ(cpu.getState().pc, 16u);
-        EXPECT_TRUE(memory.isWriteProtected(8, sizeof(Word)));
+        EXPECT_EQ(memory.isWriteProtected(8, sizeof(Word)), mode.dispatch != DispatchMode::Naive);
     }
 }
 
@@ -70,7 +71,7 @@ TEST(SmcTest, ModifiesPreviouslyExecutedBlock)
         EXPECT_EQ(cpu.getState().getReg(3), 3u);
         EXPECT_EQ(memory.read32(0), replacement);
         EXPECT_EQ(cpu.getState().pc, 20u);
-        EXPECT_TRUE(memory.isWriteProtected(0, sizeof(Word)));
+        EXPECT_EQ(memory.isWriteProtected(0, sizeof(Word)), mode.dispatch != DispatchMode::Naive);
     }
 }
 

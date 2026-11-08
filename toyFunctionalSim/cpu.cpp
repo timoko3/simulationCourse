@@ -6,8 +6,7 @@ void Cpu::stepInstruction(Memory& memory) {
     const Word raw = simpPipeline_.fetch_.instrFetch(memory, state_.pc);
     const Instruction instruction = simpPipeline_.decode_.instrDecode(raw);
 
-    memory.protectCode(state_.pc, sizeof(Word));
-    executeInstruction(memory, instruction);
+    simpPipeline_.exec_.execInstr(state_, memory, instruction);
 }
 
 void
