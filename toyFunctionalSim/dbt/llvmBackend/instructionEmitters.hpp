@@ -35,6 +35,7 @@ inline void emitBeq(Context& ctx, const Instruction& instruction) {
     auto* target = ctx.builder.CreateAdd(loadPc(ctx), offset);
 
     ctx.nextPc = ctx.builder.CreateSelect(condition, target, ctx.nextPc);
+    ctx.exitIndex = ctx.builder.CreateSelect(condition, ctx.builder.getInt32(0), ctx.builder.getInt32(1));
 }
 
 struct BitExtractOperation {
@@ -49,6 +50,7 @@ inline void emitJ(Context& ctx, const Instruction& instruction) {
     auto* target = immediate(ctx, instruction.src1 << 2);
 
     ctx.nextPc = ctx.builder.CreateOr(region, target);
+    ctx.exitIndex = ctx.builder.getInt32(0);
 }
 
 struct CountLeadingOnesOperation {

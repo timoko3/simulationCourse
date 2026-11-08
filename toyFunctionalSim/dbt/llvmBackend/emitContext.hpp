@@ -12,6 +12,8 @@ struct Context {
     llvm::Value* memory;
     Addr guestPc;
     llvm::Value* nextPc = nullptr;
+    llvm::Value* exitIndex = nullptr;
+    llvm::Value* descriptor = nullptr;
 };
 
 }

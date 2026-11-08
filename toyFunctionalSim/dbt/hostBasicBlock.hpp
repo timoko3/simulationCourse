@@ -5,30 +5,24 @@
 #include <utility>
 
 #include "isa/definitions.hpp"
+#include "blockDescriptor.hpp"
 
 namespace simulator {
 
-struct CpuState;
-struct Memory;
-
 class HostBasicBlock {
 public:
-    using EntryPoint = void (*)(CpuState*, Memory*);
+    using EntryPoint = BlockDescriptor::EntryPoint;
 
-private:
-    Addr startPc_;
-    EntryPoint entryPoint_;
-    std::shared_ptr<void> codeOwner_;
-
-public:
     HostBasicBlock(Addr startPc, EntryPoint entryPoint, std::shared_ptr<void> codeOwner)
-        : startPc_(startPc), entryPoint_(entryPoint), codeOwner_(std::move(codeOwner)) {
-        if (!entryPoint_) {
+        : startPc_(startPc), codeOwner_(std::move(codeOwner)), descriptor_(std::make_unique<BlockDescriptor>()) {
+        if (!entryPoint) {
             throw std::invalid_argument("Host block entry point must not be null");
         }
         if (!codeOwner_) {
             throw std::invalid_argument("Host block code owner must not be null");
         }
+
+        descriptor_->entry = entryPoint;
     }
 
     HostBasicBlock(const HostBasicBlock&) = delete;
@@ -38,7 +32,13 @@ public:
     HostBasicBlock& operator=(HostBasicBlock&&) noexcept = default;
 
     Addr getStartPc() const { return startPc_; }
-    EntryPoint getEntryPoint() const { return entryPoint_; }
+    EntryPoint getEntryPoint() const { return descriptor_->entry; }
+    BlockDescriptor* getDescriptor() { return descriptor_.get(); }
+
+private:
+    Addr startPc_;
+    std::shared_ptr<void> codeOwner_;
+    std::unique_ptr<BlockDescriptor> descriptor_;
 };
 
 }

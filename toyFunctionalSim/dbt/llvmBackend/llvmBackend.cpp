@@ -119,7 +119,7 @@ LlvmBackend::translate(Addr pc, const BasicBlock& block) {
     llvm::IRBuilder<> builder(*context);
 
     auto* pointerType = builder.getPtrTy();
-    auto* signature = llvm::FunctionType::get(builder.getVoidTy(), {pointerType, pointerType}, false);
+    auto* signature = llvm::FunctionType::get(pointerType, {pointerType, pointerType, pointerType}, false);
 
     const std::string functionName = "block_" + std::to_string(pc);
     auto* function = llvm::Function::Create(signature, llvm::Function::ExternalLinkage, functionName, module.get());
@@ -130,7 +130,9 @@ LlvmBackend::translate(Addr pc, const BasicBlock& block) {
 
     function->getArg(0)->setName("state");
     function->getArg(1)->setName("memory");
+    function->getArg(2)->setName("descriptor");
     EmitContext emitContext{builder, function->getArg(0), function->getArg(1), pc};
+    emitContext.descriptor = function->getArg(2);
 
     for(const auto& insn : block){
         emitContext.nextPc = builder.CreateAdd(llvmEmitters::loadPc(emitContext), builder.getInt32(sizeof(Word)), "next_pc");
@@ -139,7 +141,7 @@ LlvmBackend::translate(Addr pc, const BasicBlock& block) {
 
         emitContext.guestPc += sizeof(Word);
     }
-    builder.CreateRetVoid(); // TODO: jump next block
+    llvmEmitters::emitBlockExit(emitContext);
 
     passes_.run(*function, functionAnalyses_);
 

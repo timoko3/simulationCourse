@@ -5,6 +5,7 @@
 #include <type_traits>
 
 #include "emitContext.hpp"
+#include "../blockDescriptor.hpp"
 #include "isa/isa.hpp"
 #include "toyFunctionalSim/cpuState.hpp"
 
@@ -56,6 +57,42 @@ llvm::Value* emitRegRegAddress(Context& ctx, const Instruction& instruction) {
     auto* offset = loadReg(ctx, instruction.*RegisterField);
 
     return ctx.builder.CreateAdd(base, offset);
+}
+
+inline void emitBlockExit(Context& ctx) {
+    if (!ctx.exitIndex) {
+        ctx.builder.CreateRet(llvm::ConstantPointerNull::get(ctx.builder.getPtrTy()));
+        return;
+    }
+
+    auto* function = ctx.builder.GetInsertBlock()->getParent();
+    auto* returnBlock = llvm::BasicBlock::Create(ctx.builder.getContext(), "return", function);
+    auto* chainBlock = llvm::BasicBlock::Create(ctx.builder.getContext(), "chain", function);
+
+    auto* pointerType = ctx.builder.getPtrTy();
+    auto* exitSlotType = llvm::StructType::get(ctx.builder.getContext(), {pointerType}, false);
+    auto* exitsType = llvm::ArrayType::get(exitSlotType, 2);
+    auto* descriptorType = llvm::StructType::get(ctx.builder.getContext(), {pointerType, exitsType}, false);
+
+    auto* exits = ctx.builder.CreateStructGEP(descriptorType, ctx.descriptor, 1);
+    auto* slot = ctx.builder.CreateInBoundsGEP(
+        exitsType, exits, {ctx.builder.getInt32(0), ctx.exitIndex});
+    auto* targetAddress = ctx.builder.CreateStructGEP(exitSlotType, slot, 0);
+    auto* target = ctx.builder.CreateLoad(ctx.builder.getPtrTy(), targetAddress, "linked_block");
+    auto* linked = ctx.builder.CreateIsNotNull(target);
+
+    ctx.builder.CreateCondBr(linked, chainBlock, returnBlock);
+
+    ctx.builder.SetInsertPoint(returnBlock);
+    ctx.builder.CreateRet(slot);
+
+    ctx.builder.SetInsertPoint(chainBlock);
+    auto* entryAddress = ctx.builder.CreateStructGEP(descriptorType, target, 0);
+    auto* entry = ctx.builder.CreateLoad(ctx.builder.getPtrTy(), entryAddress, "linked_entry");
+    auto* call = ctx.builder.CreateCall(
+        function->getFunctionType(), entry, {ctx.state, ctx.memory, target});
+    call->setTailCallKind(llvm::CallInst::TCK_MustTail);
+    ctx.builder.CreateRet(call);
 }
 
 inline void requireImmediateBitIndex(llvm::Value* value) {

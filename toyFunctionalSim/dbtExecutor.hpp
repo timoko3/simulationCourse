@@ -23,6 +23,9 @@ class DbtExecutor {
     std::unordered_map<Addr, std::size_t> executionCounts_;
 
     BinaryTranslator BinaryTranslator_;
+
+    std::shared_ptr<HostBasicBlock> cacheBlock(Addr pc, const std::shared_ptr<HostBasicBlock>& block,
+                                             ExitSlot* incomingExit);
 public:
     explicit DbtExecutor(DbtLib backendType) : BinaryTranslator_(backendType) {}
 
