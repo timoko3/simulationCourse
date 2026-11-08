@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <exception>
+#include <stdexcept>
+#include <type_traits>
 #include <setjmp.h>
 #include <signal.h>
 
@@ -11,12 +13,9 @@
 namespace simulator {
 
 struct CodeWriteFault : std::exception {
-    Addr writeGuestAddress;
-    std::size_t byteCount;
     Addr faultGuestAddress;
 
-    CodeWriteFault(Addr writeGuestAddress, std::size_t byteCount, Addr faultGuestAddress) noexcept
-        : writeGuestAddress(writeGuestAddress), byteCount(byteCount), faultGuestAddress(faultGuestAddress) {}
+    explicit CodeWriteFault(Addr faultGuestAddress) noexcept : faultGuestAddress(faultGuestAddress) {}
 
     const char* what() const noexcept override { return "Write to protected guest code"; }
 };
@@ -31,50 +30,47 @@ public:
     PermissionFaultHandler(PermissionFaultHandler&&) = delete;
     PermissionFaultHandler& operator=(PermissionFaultHandler&&) = delete;
 
-private:
-    friend struct Memory;
-
-    struct WriteContext {
-        sigjmp_buf jumpBuffer;
-        std::uintptr_t hostWriteBegin;
-        std::uintptr_t hostMemoryBase;
-        std::size_t byteCount;
-        volatile sig_atomic_t faultGuestAddress;
-    };
-
-    template<class WriteOperation>
-    static void guardWrite(Memory& guestMemory, Addr writeGuestAddress,
-                           std::size_t byteCount, WriteOperation writeOperation) {
-        if (!activeHandler_ || activeHandler_->guestMemory_ != &guestMemory ||
-            !guestMemory.isWriteProtected(writeGuestAddress, byteCount)) {
-            writeOperation();
-            return;
+    template<class Execution>
+    auto execute(Execution execution) {
+        if (executionActive_) {
+            throw std::logic_error("Permission fault checkpoint is already active");
         }
 
-        WriteContext writeContext{};
-        writeContext.hostMemoryBase = reinterpret_cast<std::uintptr_t>(guestMemory.data());
-        writeContext.hostWriteBegin = writeContext.hostMemoryBase + writeGuestAddress;
-        writeContext.byteCount = byteCount;
-        auto* previousWriteContext = activeWriteContext_;
-
-        if (sigsetjmp(writeContext.jumpBuffer, 1) != 0) {
-            activeWriteContext_ = previousWriteContext;
-            throw CodeWriteFault(writeGuestAddress, byteCount, static_cast<Addr>(writeContext.faultGuestAddress));
+        if (sigsetjmp(jumpBuffer_, 0) != 0) {
+            executionActive_ = 0;
+            throw CodeWriteFault(static_cast<Addr>(faultGuestAddress_));
         }
 
-        activeWriteContext_ = &writeContext;
-        writeOperation();
-        activeWriteContext_ = previousWriteContext;
+        executionActive_ = 1;
+        try {
+            if constexpr (std::is_void_v<std::invoke_result_t<Execution>>) {
+                execution();
+                executionActive_ = 0;
+            }
+            else {
+                auto result = execution();
+                executionActive_ = 0;
+                return result;
+            }
+        }
+        catch (...) {
+            executionActive_ = 0;
+            throw;
+        }
     }
 
+private:
     static void handleSignal(int signalNumber, siginfo_t* signalInfo, void* hostSignalContext) noexcept;
 
-    Memory* guestMemory_;
+    std::uintptr_t hostMemoryBase_;
+    std::size_t memorySize_;
+    sigjmp_buf jumpBuffer_;
+    volatile sig_atomic_t executionActive_ = 0;
+    volatile sig_atomic_t faultGuestAddress_ = 0;
 
     static struct sigaction previousSignalAction_;
     static volatile sig_atomic_t previousSignalActionConsumed_;
     static PermissionFaultHandler* activeHandler_;
-    static WriteContext* activeWriteContext_;
 };
 
 }

@@ -3,16 +3,16 @@
 #include <cerrno>
 #include <stdexcept>
 #include <system_error>
+#include <ucontext.h>
 
 namespace simulator {
 
 struct sigaction PermissionFaultHandler::previousSignalAction_{};
 volatile sig_atomic_t PermissionFaultHandler::previousSignalActionConsumed_ = 0;
 PermissionFaultHandler* PermissionFaultHandler::activeHandler_ = nullptr;
-PermissionFaultHandler::WriteContext* PermissionFaultHandler::activeWriteContext_ = nullptr;
 
 PermissionFaultHandler::PermissionFaultHandler(Memory& guestMemory)
-    : guestMemory_(&guestMemory)
+    : hostMemoryBase_(reinterpret_cast<std::uintptr_t>(guestMemory.data())), memorySize_(guestMemory.size())
 {
     if (activeHandler_) {
         throw std::logic_error("Permission fault handling is already active");
@@ -50,17 +50,21 @@ PermissionFaultHandler::~PermissionFaultHandler()
 
 void PermissionFaultHandler::handleSignal(int signalNumber, siginfo_t* signalInfo, void* hostSignalContext) noexcept
 {
-    auto* writeContext = activeWriteContext_;
-    if (writeContext && signalInfo && signalInfo->si_code == SEGV_ACCERR) {
+    const auto savedErrno = errno;
+    auto* handler = activeHandler_;
+    if (handler && handler->executionActive_ && signalInfo && hostSignalContext && signalInfo->si_code == SEGV_ACCERR) {
         const auto hostFaultAddress = reinterpret_cast<std::uintptr_t>(signalInfo->si_addr);
-        if (hostFaultAddress >= writeContext->hostWriteBegin &&
-            hostFaultAddress - writeContext->hostWriteBegin < writeContext->byteCount) {
-            writeContext->faultGuestAddress = static_cast<sig_atomic_t>(hostFaultAddress - writeContext->hostMemoryBase);
-            siglongjmp(writeContext->jumpBuffer, 1);
+        if (hostFaultAddress >= handler->hostMemoryBase_ &&
+            hostFaultAddress - handler->hostMemoryBase_ < handler->memorySize_) {
+            const auto* signalContext = static_cast<const ucontext_t*>(hostSignalContext);
+            if (sigprocmask(SIG_SETMASK, &signalContext->uc_sigmask, nullptr) == 0) {
+                handler->faultGuestAddress_ = static_cast<sig_atomic_t>(hostFaultAddress - handler->hostMemoryBase_);
+                errno = savedErrno;
+                siglongjmp(handler->jumpBuffer_, 1);
+            }
         }
     }
 
-    const auto savedErrno = errno;
     if (previousSignalActionConsumed_ || previousSignalAction_.sa_handler == SIG_DFL ||
         (previousSignalAction_.sa_handler == SIG_IGN && signalInfo && signalInfo->si_code > 0)) {
         struct sigaction defaultSignalAction{};

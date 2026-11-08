@@ -124,6 +124,7 @@ target_include_directories(isa PUBLIC
 add_library(simulator_core STATIC
     toyFunctionalSim/cpu.cpp
     toyFunctionalSim/cpuRun.cpp
+    toyFunctionalSim/smcController.cpp
     toyFunctionalSim/dbtExecutor.cpp
     toyFunctionalSim/dbt/blockLinker.cpp
     toyFunctionalSim/dbt/hostBasicBlock.cpp

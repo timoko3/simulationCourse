@@ -1,6 +1,7 @@
 #include "cpu.hpp"
 #include "dbtExecutor.hpp"
 #include "memory/permissionFaultHandler.hpp"
+#include "smcController.hpp"
 
 #include <stdexcept>
 
@@ -12,28 +13,38 @@ namespace simulator {
 
 void Cpu::run(Memory& memory, DispatchMode dispatchMode, ExecutionMode execMode, std::size_t threshold)
 {
-    PermissionFaultHandler faultHandler(memory);
-
     if(execMode == ExecutionMode::Standard){
-        if(dispatchMode == DispatchMode::Naive){
-            while (true) {
-                stepInstruction(memory);
+        PermissionFaultHandler faultHandler(memory);
+        SmcController smcController(*this, memory);
+
+        while (true) {
+            try {
+                faultHandler.execute([&] {
+                    if(dispatchMode == DispatchMode::Naive){
+                        while (true) {
+                            stepInstruction(memory);
+                        }
+                    }
+                    else if(dispatchMode == DispatchMode::Switch){
+                        while (true) {
+                            interpretBlock(memory);
+                        }
+                    }
+                    else if(dispatchMode == DispatchMode::Threaded){
+                    #if SIMCOURSE_HAS_MUSTTAIL
+                        ThreadedExecutor::run(*this, memory);
+                    #else
+                        throw std::runtime_error("Threaded dispatch is unavailable: rebuild with a compiler supporting clang::musttail");
+                    #endif
+                    }
+                    else{
+                        throw std::logic_error("invalid dispatch parameter");
+                    }
+                });
             }
-        }
-        else if(dispatchMode == DispatchMode::Switch){
-            while (true) {
-                interpretBlock(memory);
+            catch (const CodeWriteFault& fault) {
+                smcController.handleSMC(fault);
             }
-        }
-        else if(dispatchMode == DispatchMode::Threaded){
-        #if SIMCOURSE_HAS_MUSTTAIL
-            ThreadedExecutor::run(*this, memory);
-        #else
-            throw std::runtime_error("Threaded dispatch is unavailable: rebuild with a compiler supporting clang::musttail");
-        #endif
-        }
-        else{
-            throw std::logic_error("invalid dispatch parameter");
         }
     }
     else if(execMode == ExecutionMode::DBT){

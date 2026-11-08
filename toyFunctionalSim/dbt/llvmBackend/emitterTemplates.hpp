@@ -49,6 +49,7 @@ void emitStore(Context& ctx, const Instruction& instruction) {
     auto* address = Address(ctx, instruction);
     auto* value = loadReg(ctx, instruction.src2);
 
+    ctx.builder.CreateStore(ctx.builder.getInt32(ctx.guestPc), pcAddress(ctx))->setVolatile(true);
     storeGuestWord(ctx, address, value);
 }
 

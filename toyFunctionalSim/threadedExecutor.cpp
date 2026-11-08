@@ -64,6 +64,7 @@ void ThreadedExecutor::loadNextBlock(Context& ctx)
 {
     const BasicBlock& block = ctx.cpu.getBasicBlock(ctx.memory, ctx.cpu.getState().pc);
 
+    ctx.memory.protectCode(ctx.cpu.getState().pc, block.size() * sizeof(Word));
     ctx.instr = block.cbegin();
     ctx.blockEnd = block.cend();
 }

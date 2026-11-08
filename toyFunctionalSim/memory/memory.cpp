@@ -1,5 +1,4 @@
 #include "memory.hpp"
-#include "permissionFaultHandler.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -16,9 +15,7 @@ Memory::writeProgram(const std::vector<Word>& program){
     const auto byteCount = program.size() * sizeof(Word);
 
     if (byteCount != 0) {
-        PermissionFaultHandler::guardWrite(*this, 0, byteCount, [&] {
-            std::memcpy(data_.data(), program.data(), byteCount);
-        });
+        std::memcpy(data_.data(), program.data(), byteCount);
     }
 }
 
@@ -29,9 +26,7 @@ void Memory::write32(Addr addr, Word word)
         throw std::out_of_range("Memory write out of bounds");
     }
 
-    PermissionFaultHandler::guardWrite(*this, addr, sizeof(word), [&] {
-        std::memcpy(data_.data() + offset, &word, sizeof(word));
-    });
+    std::memcpy(data_.data() + offset, &word, sizeof(word));
 }
 
 void Memory::loadData(Addr addr,
@@ -51,9 +46,7 @@ void Memory::loadData(Addr addr,
         throw std::invalid_argument("Memory data source is null");
     }
 
-    PermissionFaultHandler::guardWrite(*this, addr, byteCount, [&] {
-        std::memmove(data_.data() + offset, source, byteCount);
-    });
+    std::memmove(data_.data() + offset, source, byteCount);
 }
 
 void Memory::fillData(Addr addr,
@@ -66,9 +59,7 @@ void Memory::fillData(Addr addr,
     }
 
     if (byteCount != 0) {
-        PermissionFaultHandler::guardWrite(*this, addr, byteCount, [&] {
-            std::memset(data_.data() + offset, value, byteCount);
-        });
+        std::memset(data_.data() + offset, value, byteCount);
     }
 }
 

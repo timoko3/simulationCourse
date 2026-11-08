@@ -67,16 +67,22 @@ void MappedMemory::protect(std::size_t offset, std::size_t byteCount, Access acc
         return;
     }
 
+    const auto first = offset / pageSize();
+    const auto last = (offset + byteCount - 1) / pageSize();
+    const Byte protectedPage = access == Access::ReadOnly;
+    if (std::all_of(protectedPages_.begin() + first, protectedPages_.begin() + last + 1,
+                    [protectedPage](Byte protection) { return protection == protectedPage; })) {
+        return;
+    }
+
     const auto pageStart = offset - offset % pageSize();
     const auto protection = access == Access::ReadOnly ? PROT_READ : PROT_READ | PROT_WRITE;
     if (mprotect(data_ + pageStart, offset + byteCount - pageStart, protection) != 0) {
         throw std::system_error(errno, std::generic_category(), "Cannot change page protection");
     }
 
-    const auto first = pageStart / pageSize();
-    const auto last = (offset + byteCount - 1) / pageSize();
     std::fill(protectedPages_.begin() + first, protectedPages_.begin() + last + 1,
-              access == Access::ReadOnly);
+              protectedPage);
 }
 
 bool MappedMemory::isWriteProtected(std::size_t offset, std::size_t byteCount) const

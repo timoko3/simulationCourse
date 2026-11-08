@@ -21,7 +21,7 @@ class DbtExecutor {
     using TranslationCache = cache::CacheLIRS<std::shared_ptr<HostBasicBlock>, Addr>;
 
     BlockLinker blockLinker_;
-    TranslationCache translationCache_{T_CACHE_SIZE};
+    std::unique_ptr<TranslationCache> translationCache_ = std::make_unique<TranslationCache>(T_CACHE_SIZE);
     std::unordered_map<Addr, std::size_t> executionCounts_;
 
     BinaryTranslator BinaryTranslator_;
@@ -30,6 +30,7 @@ public:
     explicit DbtExecutor(DbtLib backendType) : BinaryTranslator_(backendType) {}
 
     void run(Cpu& cpu, Memory& memory, std::size_t threshold);
+    void invalidateCode();
 
 };
 
