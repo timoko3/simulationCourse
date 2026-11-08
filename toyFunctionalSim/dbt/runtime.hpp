@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include "toyFunctionalSim/memory.hpp"
+#include "toyFunctionalSim/memory/memory.hpp"
 #include "toyFunctionalSim/simplePipeline/syscallHandlers.hpp"
 
 namespace simulator::dbtRuntime {

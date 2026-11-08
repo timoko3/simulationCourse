@@ -127,7 +127,8 @@ add_library(simulator_core STATIC
     toyFunctionalSim/dbtExecutor.cpp
     toyFunctionalSim/dbt/blockLinker.cpp
     toyFunctionalSim/dbt/hostBasicBlock.cpp
-    toyFunctionalSim/memory.cpp
+    toyFunctionalSim/memory/memory.cpp
+    toyFunctionalSim/memory/mappedMemory.cpp
     toyFunctionalSim/functionalSimulator.cpp
 
     toyFunctionalSim/programLoader/elfLoader.cpp

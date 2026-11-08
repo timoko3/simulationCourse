@@ -57,8 +57,8 @@ ElfLoader::loadSegment(const ELFIO::segment& segment, Memory& memory){
         throw std::runtime_error("ELF segment has invalid sizes");
     }
 
-    if (addr64 > memory.data.size() ||
-        memorySize64 > memory.data.size() - addr64) {
+    if (addr64 > memory.size() ||
+        memorySize64 > memory.size() - addr64) {
         throw std::runtime_error("ELF segment does not fit into memory");
     }
 

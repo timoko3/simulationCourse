@@ -1,6 +1,6 @@
 #pragma once 
 
-#include "memory.hpp"
+#include "memory/memory.hpp"
 #include "cpuState.hpp"
 
 #include <filesystem>

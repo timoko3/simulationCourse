@@ -1,7 +1,7 @@
 #include "threadedExecutor.hpp"
 
 #include "cpu.hpp"
-#include "memory.hpp"
+#include "memory/memory.hpp"
 
 #include <stdexcept>
 

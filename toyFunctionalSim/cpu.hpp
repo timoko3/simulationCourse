@@ -5,7 +5,7 @@
 #include <array>
 
 #include "cpuState.hpp"
-#include "memory.hpp"
+#include "memory/memory.hpp"
 #include "simplePipeline/simplePipeline.hpp"
 
 #include "simulatorSettings.hpp"

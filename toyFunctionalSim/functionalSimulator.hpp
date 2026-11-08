@@ -4,7 +4,7 @@
 
 #include "cpu.hpp"
 #include "simulatorSettings.hpp"
-#include "memory.hpp"
+#include "memory/memory.hpp"
 
 #include "programLoader/loader.hpp"
 

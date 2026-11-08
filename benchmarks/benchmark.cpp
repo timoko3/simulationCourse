@@ -98,7 +98,7 @@ Sample runComparison(const std::filesystem::path& program, int round)
         const auto dispatchMode = modes[index];
         const auto executionMode = index == 3 ? ExecutionMode::DBT : ExecutionMode::Standard;
 
-        executions[index] = execute(program, dispatchMode, executionMode);
+        executions[index].emplace(execute(program, dispatchMode, executionMode));
     }
 
     verifyEqual(*executions[0], *executions[1]);
@@ -140,7 +140,7 @@ Sample runThresholdSweep(const Options& options, int round)
         }
 
         if (!reference) {
-            reference = std::move(execution);
+            reference.emplace(std::move(execution));
         }
     }
 
@@ -179,7 +179,7 @@ void verifyEqual(const Execution& first, const Execution& second)
         std::begin(second.state.gpr_regs));
 
     if (first.state.pc != second.state.pc || !registersEqual ||
-        first.memory.data != second.memory.data) {
+        first.memory != second.memory) {
         throw std::runtime_error("Execution modes produced different CPU or memory states");
     }
 }
