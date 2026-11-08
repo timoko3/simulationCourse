@@ -8,6 +8,7 @@
 
 #include "dbt/hostBasicBlock.hpp"
 #include "dbt/binaryTranslator.hpp"
+#include "dbt/blockLinker.hpp"
 
 namespace simulator {
 
@@ -19,13 +20,12 @@ constexpr std::size_t T_CACHE_SIZE = 64;
 class DbtExecutor {
     using TranslationCache = cache::CacheLIRS<std::shared_ptr<HostBasicBlock>, Addr>;
 
+    BlockLinker blockLinker_;
     TranslationCache translationCache_{T_CACHE_SIZE};
     std::unordered_map<Addr, std::size_t> executionCounts_;
 
     BinaryTranslator BinaryTranslator_;
 
-    std::shared_ptr<HostBasicBlock> cacheBlock(Addr pc, const std::shared_ptr<HostBasicBlock>& block,
-                                             ExitSlot* incomingExit);
 public:
     explicit DbtExecutor(DbtLib backendType) : BinaryTranslator_(backendType) {}
 

@@ -9,6 +9,8 @@
 
 namespace simulator {
 
+class BlockLinker;
+
 class HostBasicBlock {
 public:
     using EntryPoint = BlockDescriptor::EntryPoint;
@@ -25,20 +27,25 @@ public:
         descriptor_->entry = entryPoint;
     }
 
+    ~HostBasicBlock();
+
     HostBasicBlock(const HostBasicBlock&) = delete;
     HostBasicBlock& operator=(const HostBasicBlock&) = delete;
 
-    HostBasicBlock(HostBasicBlock&&) noexcept = default;
-    HostBasicBlock& operator=(HostBasicBlock&&) noexcept = default;
+    HostBasicBlock(HostBasicBlock&&) = delete;
+    HostBasicBlock& operator=(HostBasicBlock&&) = delete;
 
     Addr getStartPc() const { return startPc_; }
     EntryPoint getEntryPoint() const { return descriptor_->entry; }
     BlockDescriptor* getDescriptor() { return descriptor_.get(); }
 
 private:
+    friend class BlockLinker;
+
     Addr startPc_;
     std::shared_ptr<void> codeOwner_;
     std::unique_ptr<BlockDescriptor> descriptor_;
+    BlockLinker* linker_ = nullptr;
 };
 
 }
