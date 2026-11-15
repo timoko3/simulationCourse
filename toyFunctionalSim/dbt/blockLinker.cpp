@@ -8,31 +8,26 @@ namespace simulator {
 BlockLinker::~BlockLinker()
 {
     for (const auto& [exit, owner] : owners_) {
-        if (auto block = owner.lock()) {
-            block->linker_ = nullptr;
-            exit->target = nullptr;
-        }
+        owner->linker_ = nullptr;
+        exit->target = nullptr;
     }
 }
 
-void BlockLinker::registerBlock(const std::shared_ptr<HostBasicBlock>& block)
+void BlockLinker::registerBlock(HostBasicBlock& block)
 {
-    if (!block) {
-        throw std::invalid_argument("Cannot register a null block");
-    }
-    if (block->linker_ == this) {
+    if (block.linker_ == this) {
         return;
     }
-    if (block->linker_) {
+    if (block.linker_) {
         throw std::logic_error("Block already belongs to another linker");
     }
 
-    auto* descriptor = block->getDescriptor();
+    auto* descriptor = block.getDescriptor();
     incoming_.try_emplace(descriptor);
 
     try {
         for (auto& exit : descriptor->exits) {
-            owners_.emplace(&exit, block);
+            owners_.emplace(&exit, &block);
         }
     }
     catch (...) {
@@ -43,7 +38,7 @@ void BlockLinker::registerBlock(const std::shared_ptr<HostBasicBlock>& block)
         throw;
     }
 
-    block->linker_ = this;
+    block.linker_ = this;
 }
 
 void BlockLinker::link(ExitSlot& exit, HostBasicBlock& target)
@@ -96,20 +91,6 @@ void BlockLinker::unlinkBlock(HostBasicBlock& block) noexcept
     }
 
     block.linker_ = nullptr;
-}
-
-std::shared_ptr<HostBasicBlock> BlockLinker::getOwner(ExitSlot* exit) const
-{
-    if (!exit) {
-        return nullptr;
-    }
-
-    const auto owner = owners_.find(exit);
-    if (owner == owners_.end()) {
-        throw std::logic_error("Exit slot does not belong to this linker");
-    }
-
-    return owner->second.lock();
 }
 
 }

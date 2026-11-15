@@ -62,6 +62,8 @@ TEST(SmcTest, ModifiesPreviouslyExecutedBlock)
                              loadImmediate(9, SYSCALL_EXIT), 0b010100u});
         memory.write32(writerPc, store(2, 1));
         memory.write32(writerPc + sizeof(Word), jump(0));
+        memory.protectCode(0, 6 * sizeof(Word));
+        memory.protectCode(writerPc, 2 * sizeof(Word));
         cpu.getState().setReg(1, 0);
         cpu.getState().setReg(2, replacement);
         cpu.getState().setReg(4, 3);

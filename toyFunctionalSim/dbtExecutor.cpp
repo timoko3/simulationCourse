@@ -3,6 +3,9 @@
 #include "memory/permissionFaultHandler.hpp"
 #include "smcController.hpp"
 
+#include <functional>
+#include <utility>
+
 namespace simulator{
 
 void DbtExecutor::run(Cpu& cpu, Memory& memory, std::size_t threshold)
@@ -10,49 +13,37 @@ void DbtExecutor::run(Cpu& cpu, Memory& memory, std::size_t threshold)
     PermissionFaultHandler faultHandler(memory);
     SmcController smcController(cpu, memory, this);
     ExitSlot* incomingExit = nullptr;
-    std::shared_ptr<HostBasicBlock> incomingBlock;
 
     while (true) {
         try {
             const Addr pc = cpu.getState().pc;
-            const auto curHostBasicBlock = translationCache_->lookup(pc);
-            std::shared_ptr<HostBasicBlock> block;
+            auto block = translationCache_->find(pc);
 
-            if (curHostBasicBlock != std::nullopt) {
-                block = curHostBasicBlock->get();
-            }
-            else {
+            if (!block) {
                 auto& count = executionCounts_[pc];
                 if (count < threshold) {
                     ++count;
                     incomingExit = nullptr;
-                    incomingBlock.reset();
                     faultHandler.execute([&] { cpu.interpretBlock(memory); });
                     continue;
                 }
 
-                const auto& guestBlock = cpu.getBasicBlock(memory, pc);
-                memory.protectCode(pc, guestBlock.size() * sizeof(Word));
-                std::shared_ptr<HostBasicBlock> translatedBlock = BinaryTranslator_.translate(pc, guestBlock);
-                blockLinker_.registerBlock(translatedBlock);
-                block = translationCache_->lookupUpdate(pc, [&translatedBlock](Addr) -> const std::shared_ptr<HostBasicBlock>& {
-                    return translatedBlock;
-                });
+                auto translated = BinaryTranslator_.translate(pc, cpu.getBasicBlock(memory, pc));
+                blockLinker_.registerBlock(*translated);
+                linkIncomingExit(incomingExit, *translated);
+                block = std::cref(translationCache_->insertMove(pc, std::move(translated)));
             }
-
-            if (incomingExit) {
-                blockLinker_.link(*incomingExit, *block);
+            else {
+                linkIncomingExit(incomingExit, *block->get());
             }
-            incomingBlock.reset();
 
             incomingExit = faultHandler.execute([&] {
-                return block->getEntryPoint()(&cpu.getState(), &memory, block->getDescriptor());
+                return block->get()->getEntryPoint()(&cpu.getState(), &memory,
+                                                    block->get()->getDescriptor());
             });
-            incomingBlock = blockLinker_.getOwner(incomingExit);
         }
         catch (const CodeWriteFault& fault) {
             incomingExit = nullptr;
-            incomingBlock.reset();
             smcController.handleSMC(fault);
         }
     }
@@ -62,6 +53,14 @@ void DbtExecutor::invalidateCode()
 {
     translationCache_ = std::make_unique<TranslationCache>(T_CACHE_SIZE);
     executionCounts_.clear();
+}
+
+void DbtExecutor::linkIncomingExit(ExitSlot*& incomingExit, HostBasicBlock& block)
+{
+    if (incomingExit) {
+        blockLinker_.link(*incomingExit, block);
+        incomingExit = nullptr;
+    }
 }
 
 };
