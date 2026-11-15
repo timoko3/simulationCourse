@@ -27,11 +27,10 @@ namespace simulator{
 namespace {
 
 struct LlvmCodeResources {
-    std::shared_ptr<llvm::orc::LLJIT> jit;
     llvm::orc::ResourceTrackerSP tracker;
 
-    LlvmCodeResources(std::shared_ptr<llvm::orc::LLJIT> jit, llvm::orc::ResourceTrackerSP tracker)
-        : jit(std::move(jit)), tracker(std::move(tracker)) {}
+    explicit LlvmCodeResources(llvm::orc::ResourceTrackerSP tracker)
+        : tracker(std::move(tracker)) {}
 
     ~LlvmCodeResources() {
         if (auto error = tracker->remove()) {
@@ -149,7 +148,7 @@ LlvmBackend::translate(Addr pc, const BasicBlock& block) {
     moduleAnalyses_.clear();
 
     auto tracker = jit_->getMainJITDylib().createResourceTracker();
-    auto resources = std::make_shared<LlvmCodeResources>(jit_, tracker);
+    auto resources = std::make_shared<LlvmCodeResources>(tracker);
     if (auto error = jit_->addIRModule(tracker, llvm::orc::ThreadSafeModule(std::move(module), std::move(context)))) {
         throw std::runtime_error("Failed to add LLVM module: " + llvm::toString(std::move(error)));
     }

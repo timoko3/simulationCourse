@@ -20,7 +20,7 @@ struct Context;
 class LlvmBackend : public TranslationBackend {
     using EmitContext = llvmEmitters::Context;
 
-    std::shared_ptr<llvm::orc::LLJIT> jit_;
+    std::unique_ptr<llvm::orc::LLJIT> jit_;
     EmitterTable<EmitContext> emitters_;
 
     llvm::FunctionAnalysisManager functionAnalyses_;

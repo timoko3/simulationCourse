@@ -20,11 +20,10 @@ constexpr std::size_t T_CACHE_SIZE = 64;
 class DbtExecutor {
     using TranslationCache = cache::CacheLIRS<std::unique_ptr<HostBasicBlock>, Addr>;
 
+    BinaryTranslator BinaryTranslator_;
     BlockLinker blockLinker_;
     std::unique_ptr<TranslationCache> translationCache_ = std::make_unique<TranslationCache>(T_CACHE_SIZE);
     std::unordered_map<Addr, std::size_t> executionCounts_;
-
-    BinaryTranslator BinaryTranslator_;
 
     void linkIncomingExit(ExitSlot*& incomingExit, HostBasicBlock& block);
 
