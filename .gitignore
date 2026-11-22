@@ -3,6 +3,7 @@ benchmark-results/
 __pycache__/
 *.bin
 !tests/fibonacci.bin
+/jit-dumps
 
 # Nix build outputs and local developer configuration.
 /result
