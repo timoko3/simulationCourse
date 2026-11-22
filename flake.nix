@@ -42,6 +42,7 @@
           llvm = pkgs.llvmPackages_23.llvm;
           cache = pkgs.cache-research-library;
         };
+      llvmCmakeDir = dependencies: "${dependencies.llvm.dev}/lib/cmake/llvm";
       packagesFor =
         system:
         let
@@ -78,6 +79,7 @@
                 "-DCMAKE_BUILD_TYPE=Release"
                 "-DBUILD_TESTING=ON"
                 "-DFETCHCONTENT_FULLY_DISCONNECTED=ON"
+                "-DLLVM_DIR=${llvmCmakeDir dependencies}"
               ];
               doCheck = true;
               checkPhase = ''
@@ -109,9 +111,10 @@
         {
           default = (pkgs.mkShell.override { stdenv = pkgs.clangStdenv; }) {
             inputsFrom = [ (packagesFor system).default ];
+            SIMCOURSE_NIX_LLVM_DIR = llvmCmakeDir (dependenciesFor system);
             packages = [
               pkgs.git
-              pkgs.python3
+              (pkgs.python3.withPackages (pythonPackages: [ pythonPackages.matplotlib ]))
               pkgs.ruby
               pkgs.llvmPackages_23.clang-tools
               pkgs.nixfmt

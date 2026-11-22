@@ -56,7 +56,12 @@ if(SIMCOURSE_ENABLE_LLVM)
         endif()
     endif()
 
-    find_package(LLVM 23.1 CONFIG QUIET)
+    if(NOT "$ENV{SIMCOURSE_NIX_LLVM_DIR}" STREQUAL "")
+        set(LLVM_DIR "$ENV{SIMCOURSE_NIX_LLVM_DIR}" CACHE PATH "LLVM CMake package directory" FORCE)
+        find_package(LLVM 23.1 CONFIG REQUIRED PATHS "${LLVM_DIR}" NO_DEFAULT_PATH)
+    else()
+        find_package(LLVM 23.1 CONFIG QUIET)
+    endif()
     if(NOT LLVM_FOUND)
         if(NOT SIMCOURSE_FETCH_LLVM)
             message(FATAL_ERROR
