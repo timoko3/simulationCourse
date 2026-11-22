@@ -46,16 +46,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(SIMCOURSE_BUILD_BENCHMARKS "Build dispatch comparison benchmark (requires musttail)" OFF)
 
 option(SIMCOURSE_ENABLE_LLVM "Link the LLVM backend dependencies" ON)
-option(SIMCOURSE_FETCH_LLVM "Build LLVM from source when no installed package is found" OFF)
-set(SIMCOURSE_LLVM_TAG "llvmorg-23.1.4" CACHE STRING "LLVM release tag used for the source fallback")
 
 if(SIMCOURSE_ENABLE_LLVM)
-    if(SIMCOURSE_LLVM_TAG MATCHES "^llvmorg-([0-9]+)\\.")
-        if(CMAKE_MATCH_1 LESS 23)
-            set(SIMCOURSE_LLVM_TAG "llvmorg-23.1.4" CACHE STRING "LLVM release tag used for the source fallback" FORCE)
-        endif()
-    endif()
-
     if(NOT "$ENV{SIMCOURSE_NIX_LLVM_DIR}" STREQUAL "")
         set(LLVM_DIR "$ENV{SIMCOURSE_NIX_LLVM_DIR}" CACHE PATH "LLVM CMake package directory" FORCE)
         find_package(LLVM 23.1 CONFIG REQUIRED PATHS "${LLVM_DIR}" NO_DEFAULT_PATH)
@@ -63,51 +55,16 @@ if(SIMCOURSE_ENABLE_LLVM)
         find_package(LLVM 23.1 CONFIG QUIET)
     endif()
     if(NOT LLVM_FOUND)
-        if(NOT SIMCOURSE_FETCH_LLVM)
-            message(FATAL_ERROR
-                "LLVM 23 development package was not found. Install llvm-23-dev from "
-                "https://apt.llvm.org/ or enter the project environment with nix develop. "
-                "Set LLVM_DIR to the directory reported by llvm-config-23 --cmakedir "
-                "(llvm-config --cmakedir inside nix develop). "
-                "To build LLVM from source explicitly, set -DSIMCOURSE_FETCH_LLVM=ON.")
-        endif()
-
-        message(STATUS "LLVM 23 not found; building ${SIMCOURSE_LLVM_TAG} from source")
-        set(LLVM_TARGETS_TO_BUILD "Native" CACHE STRING "LLVM targets to build")
-        set(LLVM_ENABLE_PROJECTS "" CACHE STRING "Additional LLVM projects")
-        set(LLVM_ENABLE_RUNTIMES "" CACHE STRING "Additional LLVM runtimes")
-        set(LLVM_INCLUDE_TESTS OFF CACHE BOOL "Build LLVM tests")
-        set(LLVM_INCLUDE_EXAMPLES OFF CACHE BOOL "Build LLVM examples")
-        set(LLVM_INCLUDE_BENCHMARKS OFF CACHE BOOL "Build LLVM benchmarks")
-        set(LLVM_INCLUDE_DOCS OFF CACHE BOOL "Build LLVM documentation")
-        set(LLVM_INCLUDE_TOOLS OFF CACHE BOOL "Build LLVM tools")
-        FetchContent_Declare(llvm_project
-            GIT_REPOSITORY https://github.com/llvm/llvm-project.git
-            GIT_TAG ${SIMCOURSE_LLVM_TAG}
-            GIT_SHALLOW TRUE
-            GIT_SUBMODULES ""
-            SOURCE_SUBDIR llvm
-        )
-        FetchContent_MakeAvailable(llvm_project)
-
-        # LLVM's source build keeps these variables in its directory scope.
-        foreach(variable LLVM_NATIVE_ARCH LLVM_TARGETS_TO_BUILD)
-            get_directory_property(${variable}
-                DIRECTORY "${llvm_project_SOURCE_DIR}/llvm" DEFINITION ${variable})
-        endforeach()
-        set(LLVM_INCLUDE_DIRS
-            "${llvm_project_SOURCE_DIR}/llvm/include"
-            "${llvm_project_BINARY_DIR}/include"
-        )
-        get_directory_property(SIMCOURSE_LLVM_DEFINITIONS
-            DIRECTORY "${llvm_project_SOURCE_DIR}/llvm" COMPILE_DEFINITIONS)
-        include("${llvm_project_SOURCE_DIR}/llvm/cmake/modules/LLVM-Config.cmake")
-    else()
-        message(STATUS "Using installed LLVM ${LLVM_PACKAGE_VERSION}")
-        separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND "${LLVM_DEFINITIONS}")
-        string(REGEX REPLACE "(^|;)-D" "\\1" SIMCOURSE_LLVM_DEFINITIONS
-            "${LLVM_DEFINITIONS_LIST}")
+        message(FATAL_ERROR
+            "LLVM 23.1 development package was not found. Use nix develop, or install "
+            "llvm-23-dev from https://apt.llvm.org/ and set LLVM_DIR to the directory "
+            "reported by llvm-config-23 --cmakedir.")
     endif()
+
+    message(STATUS "Using installed LLVM ${LLVM_PACKAGE_VERSION}")
+    separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND "${LLVM_DEFINITIONS}")
+    string(REGEX REPLACE "(^|;)-D" "\\1" SIMCOURSE_LLVM_DEFINITIONS
+        "${LLVM_DEFINITIONS_LIST}")
 
     llvm_map_components_to_libnames(SIMCOURSE_LLVM_LIBS
         core support orcjit native passes
