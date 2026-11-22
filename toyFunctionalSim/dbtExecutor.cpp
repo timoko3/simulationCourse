@@ -31,7 +31,7 @@ void DbtExecutor::run(Cpu& cpu, Memory& memory, std::size_t threshold)
                 auto translated = BinaryTranslator_.translate(pc, cpu.getBasicBlock(memory, pc));
                 blockLinker_.registerBlock(*translated);
                 linkIncomingExit(incomingExit, *translated);
-                block = std::cref(translationCache_->insertMove(pc, std::move(translated)));
+                block = std::cref(translationCache_->implace(pc, std::move(translated)));
             }
             else {
                 linkIncomingExit(incomingExit, *block->get());
