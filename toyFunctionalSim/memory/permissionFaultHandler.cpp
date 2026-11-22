@@ -51,25 +51,44 @@ PermissionFaultHandler::~PermissionFaultHandler()
 void PermissionFaultHandler::handleSignal(int signalNumber, siginfo_t* signalInfo, void* hostSignalContext) noexcept
 {
     const auto savedErrno = errno;
-    auto* handler = activeHandler_;
-    if (handler && handler->executionActive_ && signalInfo && hostSignalContext && signalInfo->si_code == SEGV_ACCERR) {
-        const auto hostFaultAddress = reinterpret_cast<std::uintptr_t>(signalInfo->si_addr);
-        if (hostFaultAddress >= handler->hostMemoryBase_ &&
-            hostFaultAddress - handler->hostMemoryBase_ < handler->memorySize_) {
-            const auto* signalContext = static_cast<const ucontext_t*>(hostSignalContext);
-            if (sigprocmask(SIG_SETMASK, &signalContext->uc_sigmask, nullptr) == 0) {
-                handler->faultGuestAddress_ = static_cast<sig_atomic_t>(hostFaultAddress - handler->hostMemoryBase_);
-                errno = savedErrno;
-                siglongjmp(handler->jumpBuffer_, 1);
-            }
-        }
+    if (auto* handler = activeHandler_) {
+        handler->tryJumpFromGuestFault(signalInfo, hostSignalContext, savedErrno);
     }
 
+    forwardSignal(signalNumber, signalInfo, hostSignalContext);
+    errno = savedErrno;
+}
+
+void PermissionFaultHandler::tryJumpFromGuestFault(const siginfo_t* signalInfo, const void* hostSignalContext,
+                                                   int savedErrno) noexcept
+{
+    if (!executionActive_ || !signalInfo || !hostSignalContext || signalInfo->si_code != SEGV_ACCERR) {
+        return;
+    }
+
+    const auto hostFaultAddress = reinterpret_cast<std::uintptr_t>(signalInfo->si_addr);
+    if (hostFaultAddress < hostMemoryBase_ || hostFaultAddress - hostMemoryBase_ >= memorySize_) {
+        return;
+    }
+
+    const auto* signalContext = static_cast<const ucontext_t*>(hostSignalContext);
+    if (sigprocmask(SIG_SETMASK, &signalContext->uc_sigmask, nullptr) != 0) {
+        return;
+    }
+
+    faultGuestAddress_ = static_cast<sig_atomic_t>(hostFaultAddress - hostMemoryBase_);
+    errno = savedErrno;
+    siglongjmp(jumpBuffer_, 1);
+}
+
+void PermissionFaultHandler::forwardSignal(int signalNumber, siginfo_t* signalInfo, void* hostSignalContext) noexcept
+{
     if (previousSignalActionConsumed_ || previousSignalAction_.sa_handler == SIG_DFL ||
         (previousSignalAction_.sa_handler == SIG_IGN && signalInfo && signalInfo->si_code > 0)) {
         struct sigaction defaultSignalAction{};
         defaultSignalAction.sa_handler = SIG_DFL;
         sigemptyset(&defaultSignalAction.sa_mask);
+
         sigaction(signalNumber, &defaultSignalAction, nullptr);
         raise(signalNumber);
     }
@@ -85,7 +104,6 @@ void PermissionFaultHandler::handleSignal(int signalNumber, siginfo_t* signalInf
             previousSignalAction_.sa_handler(signalNumber);
         }
     }
-    errno = savedErrno;
 }
 
 }

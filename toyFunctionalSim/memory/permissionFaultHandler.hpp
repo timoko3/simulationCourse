@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <exception>
 #include <stdexcept>
-#include <type_traits>
 #include <setjmp.h>
 #include <signal.h>
 
@@ -36,31 +35,26 @@ public:
             throw std::logic_error("Permission fault checkpoint is already active");
         }
 
-        if (sigsetjmp(jumpBuffer_, 0) != 0) {
-            executionActive_ = 0;
-            throw CodeWriteFault(static_cast<Addr>(faultGuestAddress_));
+        // The guard must already exist when siglongjmp returns to this checkpoint.
+        const ResetExecutionFlag reset{executionActive_};
+        if (sigsetjmp(jumpBuffer_, 0) == 0) {
+            executionActive_ = 1;
+            return execution();
         }
 
-        executionActive_ = 1;
-        try {
-            if constexpr (std::is_void_v<std::invoke_result_t<Execution>>) {
-                execution();
-                executionActive_ = 0;
-            }
-            else {
-                auto result = execution();
-                executionActive_ = 0;
-                return result;
-            }
-        }
-        catch (...) {
-            executionActive_ = 0;
-            throw;
-        }
+        throw CodeWriteFault(static_cast<Addr>(faultGuestAddress_));
     }
 
 private:
+    struct ResetExecutionFlag {
+        volatile sig_atomic_t& active;
+
+        ~ResetExecutionFlag() { active = 0; }
+    };
+
     static void handleSignal(int signalNumber, siginfo_t* signalInfo, void* hostSignalContext) noexcept;
+    void tryJumpFromGuestFault(const siginfo_t* signalInfo, const void* hostSignalContext, int savedErrno) noexcept;
+    static void forwardSignal(int signalNumber, siginfo_t* signalInfo, void* hostSignalContext) noexcept;
 
     std::uintptr_t hostMemoryBase_;
     std::size_t memorySize_;
