@@ -1,5 +1,6 @@
 build/
 benchmark-results/
+jit-dumps/
 __pycache__/
 *.bin
 !tests/fibonacci.bin

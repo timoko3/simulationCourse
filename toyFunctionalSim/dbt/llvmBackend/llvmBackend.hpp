@@ -6,6 +6,7 @@
 
 #include "../backend.hpp"
 #include "../instructionEmitters.hpp"
+#include "jitDump.hpp"
 
 namespace llvm::orc {
 class LLJIT;
@@ -20,6 +21,7 @@ struct Context;
 class LlvmBackend : public TranslationBackend {
     using EmitContext = llvmEmitters::Context;
 
+    std::unique_ptr<LlvmJitDump> dump_;
     std::unique_ptr<llvm::orc::LLJIT> jit_;
     EmitterTable<EmitContext> emitters_;
 

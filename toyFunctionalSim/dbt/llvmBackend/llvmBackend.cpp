@@ -4,10 +4,12 @@
 #include "../runtime.hpp"
 
 #include <stdexcept>
+#include <cstdlib>
 #include <string>
 #include <utility>
 
 #include <llvm/ExecutionEngine/Orc/LLJIT.h>
+#include <llvm/ExecutionEngine/Orc/ObjectTransformLayer.h>
 #include <llvm/ExecutionEngine/Orc/Core.h>
 #include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
 #include <llvm/IR/BasicBlock.h>
@@ -54,6 +56,13 @@ LlvmBackend::LlvmBackend()
                                  llvm::toString(jit.takeError()));
     }
     jit_ = std::move(*jit);
+
+    if (const auto* directory = std::getenv("SIMCOURSE_JIT_DUMP_DIR"); directory && *directory) {
+        dump_ = std::make_unique<LlvmJitDump>(directory, jit_->getTargetTriple());
+        jit_->getObjTransformLayer().setTransform([this](std::unique_ptr<llvm::MemoryBuffer> object) {
+            return dump_->saveObject(std::move(object));
+        });
+    }
 
     passBuilder_.registerModuleAnalyses(moduleAnalyses_);
     passBuilder_.registerFunctionAnalyses(functionAnalyses_);
@@ -121,6 +130,11 @@ LlvmBackend::translate(Addr pc, const BasicBlock& block) {
     auto* signature = llvm::FunctionType::get(pointerType, {pointerType, pointerType, pointerType}, false);
 
     const std::string functionName = "block_" + std::to_string(pc);
+    if (dump_) {
+        dump_->begin(pc, jit_->mangle(functionName));
+        dump_->saveGuest(block);
+    }
+
     auto* function = llvm::Function::Create(signature, llvm::Function::ExternalLinkage, functionName, module.get());
     function->setUWTableKind(llvm::UWTableKind::Async);
 
@@ -142,8 +156,14 @@ LlvmBackend::translate(Addr pc, const BasicBlock& block) {
     }
     llvmEmitters::emitBlockExit(emitContext);
 
+    if (dump_) {
+        dump_->saveIr(*module, "before");
+    }
     passes_.run(*function, functionAnalyses_);
 
+    if (dump_) {
+        dump_->saveIr(*module, "after");
+    }
     functionAnalyses_.clear();
     moduleAnalyses_.clear();
 
@@ -159,6 +179,9 @@ LlvmBackend::translate(Addr pc, const BasicBlock& block) {
     }
 
     auto entryPoint = symbol->toPtr<HostBasicBlock::EntryPoint>();
+    if (dump_) {
+        dump_->saveNative(symbol->toPtr<const std::uint8_t*>());
+    }
     return std::make_unique<HostBasicBlock>(pc, entryPoint, std::move(resources));
 }
 
