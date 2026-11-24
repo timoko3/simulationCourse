@@ -1,4 +1,7 @@
 #include "cpu.hpp"
+#include "dbtExecutor.hpp"
+#include "memory/permissionFaultHandler.hpp"
+#include "smcController.hpp"
 
 #include <stdexcept>
 
@@ -8,22 +11,56 @@
 
 namespace simulator {
 
-void Cpu::run(Memory& memory, DispatchMode dispatchMode)
+void Cpu::run(Memory& memory, DispatchMode dispatchMode, ExecutionMode execMode, std::size_t threshold)
 {
-    if(dispatchMode == DispatchMode::Switch){
+    if(execMode == ExecutionMode::Standard){
+        if(dispatchMode == DispatchMode::Naive){
+            memory.unprotectCode(0, memory.size());
+
+            while (true) {
+                stepInstruction(memory);
+            }
+        }
+
+        PermissionFaultHandler faultHandler(memory);
+        SmcController smcController(*this, memory);
+
         while (true) {
-            stepBlock(memory);
+            try {
+                faultHandler.execute([&] {
+                    if(dispatchMode == DispatchMode::Switch){
+                        while (true) {
+                            interpretBlock(memory);
+                        }
+                    }
+                    else if(dispatchMode == DispatchMode::Threaded){
+                    #if SIMCOURSE_HAS_MUSTTAIL
+                        ThreadedExecutor::run(*this, memory);
+                    #else
+                        throw std::runtime_error("Threaded dispatch is unavailable: rebuild with a compiler supporting clang::musttail");
+                    #endif
+                    }
+                    else{
+                        throw std::logic_error("invalid dispatch parameter");
+                    }
+                });
+            }
+            catch (const CodeWriteFault& fault) {
+                smcController.handleSMC(fault);
+            }
         }
     }
-    else if(dispatchMode == DispatchMode::Threaded){
-#if SIMCOURSE_HAS_MUSTTAIL
-        ThreadedExecutor::run(*this, memory);
-#else
-        throw std::runtime_error("Threaded dispatch is unavailable: rebuild with a compiler supporting clang::musttail");
-#endif
+    else if(execMode == ExecutionMode::DBT){
+        if(dispatchMode == DispatchMode::Switch){
+            DbtExecutor dbtExecutor{DbtLib::LLVM};
+            dbtExecutor.run(*this, memory, threshold);
+        }
+        else{
+            throw std::logic_error("for DBT dispatch must be switch");
+        }   
     }
     else{
-        throw std::logic_error("invalid dispatch parameter");
+        throw std::logic_error("invalid executionMode");
     }
 }
 

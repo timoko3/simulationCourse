@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 
 project(SimCourse
     VERSION 1.0.0
-    LANGUAGES CXX
+    LANGUAGES C CXX
 )
 
 include(FetchContent)
@@ -35,15 +35,41 @@ if(NOT TARGET CacheResearch::cache)
     set(CACHE_RESEARCH_BUILD_TESTS OFF)
     set(CACHE_RESEARCH_INSTALL OFF)
     FetchContent_Declare(cache_research
-        URL https://codeload.github.com/timoko3/cacheResearch/tar.gz/53b2af70a56335489c8d00565a5228f0bbc06f28
-        URL_HASH SHA256=e77e974b1fd235feff88a0832e035dca8a22af596b9d17e4308da4938ab0e592
-        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        GIT_REPOSITORY https://github.com/timoko3/cacheResearch.git
+        GIT_TAG origin/master
+        GIT_SHALLOW TRUE
     )
     FetchContent_MakeAvailable(cache_research)
 endif()
 
 set(CMAKE_CXX_EXTENSIONS OFF)
 option(SIMCOURSE_BUILD_BENCHMARKS "Build dispatch comparison benchmark (requires musttail)" OFF)
+
+option(SIMCOURSE_ENABLE_LLVM "Link the LLVM backend dependencies" ON)
+
+if(SIMCOURSE_ENABLE_LLVM)
+    if(NOT "$ENV{SIMCOURSE_NIX_LLVM_DIR}" STREQUAL "")
+        set(LLVM_DIR "$ENV{SIMCOURSE_NIX_LLVM_DIR}" CACHE PATH "LLVM CMake package directory" FORCE)
+        find_package(LLVM 23.1 CONFIG REQUIRED PATHS "${LLVM_DIR}" NO_DEFAULT_PATH)
+    else()
+        find_package(LLVM 23.1 CONFIG QUIET)
+    endif()
+    if(NOT LLVM_FOUND)
+        message(FATAL_ERROR
+            "LLVM 23.1 development package was not found. Use nix develop, or install "
+            "llvm-23-dev from https://apt.llvm.org/ and set LLVM_DIR to the directory "
+            "reported by llvm-config-23 --cmakedir.")
+    endif()
+
+    message(STATUS "Using installed LLVM ${LLVM_PACKAGE_VERSION}")
+    separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND "${LLVM_DEFINITIONS}")
+    string(REGEX REPLACE "(^|;)-D" "\\1" SIMCOURSE_LLVM_DEFINITIONS
+        "${LLVM_DEFINITIONS_LIST}")
+
+    llvm_map_components_to_libnames(SIMCOURSE_LLVM_LIBS
+        core support orcjit native passes
+    )
+endif()
 
 # Instruction representation and decoding helpers.
 add_library(isa STATIC
@@ -60,7 +86,13 @@ target_include_directories(isa PUBLIC
 add_library(simulator_core STATIC
     toyFunctionalSim/cpu.cpp
     toyFunctionalSim/cpuRun.cpp
-    toyFunctionalSim/memory.cpp
+    toyFunctionalSim/smcController.cpp
+    toyFunctionalSim/dbtExecutor.cpp
+    toyFunctionalSim/dbt/blockLinker.cpp
+    toyFunctionalSim/dbt/hostBasicBlock.cpp
+    toyFunctionalSim/memory/memory.cpp
+    toyFunctionalSim/memory/mappedMemory.cpp
+    toyFunctionalSim/memory/permissionFaultHandler.cpp
     toyFunctionalSim/functionalSimulator.cpp
 
     toyFunctionalSim/programLoader/elfLoader.cpp
@@ -72,6 +104,18 @@ add_library(simulator_core STATIC
 )
 
 target_compile_features(simulator_core PUBLIC cxx_std_17)
+
+if(SIMCOURSE_ENABLE_LLVM)
+    target_sources(simulator_core PRIVATE toyFunctionalSim/dbt/llvmBackend/llvmBackend.cpp)
+    target_include_directories(simulator_core SYSTEM PUBLIC ${LLVM_INCLUDE_DIRS})
+    target_compile_definitions(simulator_core PRIVATE ${SIMCOURSE_LLVM_DEFINITIONS})
+    target_link_libraries(simulator_core PRIVATE ${SIMCOURSE_LLVM_LIBS})
+
+endif()
+
+target_compile_definitions(simulator_core PUBLIC
+    SIMCOURSE_HAS_LLVM=$<BOOL:${SIMCOURSE_ENABLE_LLVM}>
+)
 
 include(CheckCXXSourceCompiles)
 check_cxx_source_compiles([=[

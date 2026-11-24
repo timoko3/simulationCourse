@@ -3,12 +3,13 @@
 #include <cstdint>
 #include <vector>
 #include <array>
+#include <memory>
 
 #include "cpuState.hpp"
-#include "memory.hpp"
+#include "memory/memory.hpp"
 #include "simplePipeline/simplePipeline.hpp"
 
-#include "dispatchMode.hpp"
+#include "simulatorSettings.hpp"
 
 #include <cache/cacheLIRS.h>
 
@@ -21,22 +22,26 @@ class Cpu{
 
     CpuState state_;
     SimplePipeline simpPipeline_;
-    iCache iCache_{I_CACHE_SIZE};
+    std::unique_ptr<iCache> iCache_ = std::make_unique<iCache>(I_CACHE_SIZE);
 
     BasicBlock createBasicBlock(Memory& memory, Addr startPc);
+    void stepInstruction(Memory& memory);
 public:
     const BasicBlock& getBasicBlock(Memory& memory, Addr startPc);
 
-    void stepBlock(Memory& memory);
+    void interpretBlock(Memory& memory);
+    void executeInstruction(Memory& memory, const Instruction& instruction);
+    void invalidateCode();
 
-    void run(Memory& memory, DispatchMode dispatchMode);
+    void run(Memory& memory, DispatchMode dispatchMode, ExecutionMode execMode,
+             std::size_t threshold = DEFAULT_DBT_THRESHOLD);
 
     CpuState& getState(){ return state_; }
     const CpuState& getState() const { return state_; }
 
     SimplePipeline& getSimplePipeline() { return simpPipeline_; } 
 
-    iCache& getICache() { return iCache_; } 
+    iCache& getICache() { return *iCache_; }
 };
 
 }

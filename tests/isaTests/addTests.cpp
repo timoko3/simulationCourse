@@ -149,7 +149,7 @@ TEST_F(IsaAddTest, ChangesOnlyDestinationAndProgramCounter)
     }
     state.pc = 100;
     memory.writeProgram({0x12345678u, 0xABCDEF01u});
-    const auto originalMemory = memory.data;
+    const auto originalMemory = memory;
 
     add(31, 1, 2);
 
@@ -158,7 +158,7 @@ TEST_F(IsaAddTest, ChangesOnlyDestinationAndProgramCounter)
         EXPECT_EQ(state.getReg(reg), 100u + reg) << "register " << reg;
     }
     EXPECT_EQ(state.pc, 104u);
-    EXPECT_EQ(memory.data, originalMemory);
+    EXPECT_EQ(memory, originalMemory);
 }
 
 TEST_F(IsaAddTest, DecodesHighRegisterNumbers)

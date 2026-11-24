@@ -1,90 +1,120 @@
 # SimCourse
 
-Учебный функциональный симулятор собственной **TIM ISA**, написанный на C++17.
-Он моделирует выполнение инструкций, состояние регистров и память, загружает
-программы из ELF и исполняет их до завершающего syscall.
+SimCourse — функциональный симулятор архитектуры команд TIM, написанный на C++17.
+Он загружает программы в формате ELF и моделирует выполнение их инструкций,
+изменения регистров и обращения к памяти.
 
-Инструкции декодируются в базовые блоки и сохраняются в LIRS-кэше. Для исполнения
-реализованы два варианта диспетчеризации:
+| Режим | Как исполняются инструкции | Флаг `simcourse` | Режим бенчмарка |
+| --- | --- | --- | --- |
+| Naive switch | Интерпретатор читает и декодирует каждую инструкцию при каждом исполнении. | Только в бенчмарке | `naive` |
+| Cached switch | Интерпретатор использует кеш декодированных базовых блоков и выбирает обработчик каждой инструкции через `switch`. | По умолчанию | `switch` |
+| Threaded | Интерпретатор использует те же декодированные блоки. Каждый обработчик передаёт управление следующему хвостовым вызовом (`clang::musttail`). | `--threaded` | `threaded` |
+| Динамическая бинарная трансляция (DBT) | До порога блок исполняется в интерпретаторе. При достижении порога симулятор использует LLVM для генерации машинного кода хоста и кеширует результат. | `--dbt`, порог задаётся через `--threshold N` | `dbt` |
 
-- **Switch** — цикл по инструкциям блока с выбором операции через `switch`.
-- **Threaded** — цепочка обработчиков с хвостовыми переходами `clang::musttail`.
+Гостевая программа может менять собственные инструкции (SMC). В режимах с
+кешированием запись в защищённую страницу кода вызывает `SIGSEGV` и прерывает
+текущий блок. Симулятор очищает кеш декодированных блоков, а в режиме DBT ещё
+и кеш трансляций. Затем он исполняет прерванную инструкцию записи и продолжает
+со следующей гостевой инструкции.
 
-Оба варианта используют общие реализации операций. Программы для TIM создаются
-через Ruby DSL: инструкции, метки и данные описываются в Ruby, а генератор
-собирает готовый ELF. Пример — [genFibonacci.rb](genFibonacci.rb).
+## Быстрый старт через Nix
 
-## Сборка через CMake
+Для сборки нужен Nix с включёнными flakes. Команды для Linux и WSL выполняются
+из корня проекта.
 
-Команды выполняются из корня проекта в Linux или WSL. Нужны **CMake 3.24+**,
-**Ninja**, компилятор **C++17** и **Ruby** для генерации программ.
-Для threaded нужен Clang с поддержкой `clang::musttail`; проверен Clang 18.
-При первой конфигурации CMake скачивает недостающие зависимости.
+```bash
+# запуск примера фибоначчи в dbt режиме
+nix build
+./result/bin/simcourse tests/fibonacci.elf --dbt
+```
 
-В Ubuntu инструменты можно установить так:
+`nix build` собирает симулятор и запускает тесты. Версии инструментов и библиотек
+зафиксированы в `flake.lock`. Поддерживаются `x86_64-linux` и `aarch64-linux`.
+
+`nix develop` открывает оболочку с Clang, LLVM, CMake, Ninja, Ruby и Python
+с Matplotlib.
+
+При переключении между системными инструментами и Nix пересоздайте конфигурацию
+соответствующим пресетом CMake. Для бенчмарков это `cmake --fresh --preset benchmark`.
+
+## Сборка без Nix
+
+Нужны **CMake 3.24+**, **Ninja**, **Clang с поддержкой C++17 и `clang::musttail`**
+(проверен Clang 18) и **LLVM 23.1.x** с заголовками и конфигурацией для CMake.
+Для генерации гостевых программ и запуска бенчмарков нужен Ruby, для графиков —
+Python 3 с Matplotlib. LLVM нужно установить заранее. CLI11, ELFIO,
+cacheResearch и GoogleTest CMake скачает при первой конфигурации, если они
+ещё не установлены.
+
+В Ubuntu базовые инструменты можно установить через `apt`. Пакет `llvm-23-dev`
+доступен в [репозитории LLVM для Ubuntu](https://apt.llvm.org/).
 
 ```bash
 sudo apt update
 sudo apt install clang cmake ninja-build ruby
 ```
 
-Сборка Release с тестами:
+После подключения репозитория LLVM установите `llvm-23-dev`, настройте и
+соберите Release:
 
 ```bash
-cmake --preset release
+sudo apt install llvm-23-dev
+cmake --preset release -DLLVM_DIR="$(llvm-config-23 --cmakedir)"
 cmake --build --preset release --parallel
 ctest --preset release
 ```
 
-Результаты сборки находятся в `build/release/`. Для Debug используйте preset
-`debug` вместо `release`; его каталог — `build/debug/`.
-Все presets используют `clang++` по умолчанию.
+Результаты находятся в `build/release/`. Для Debug замените `release` на `debug`.
 
-## Запуск программы
+## Ассемблер TIM ISA
 
-```bash
-# Сгенерировать ELF с вычислением Fibonacci.
-ruby genFibonacci.rb
-
-# Исполнить через switch (режим по умолчанию) или threaded.
-./build/release/simcourse tests/fibonacci.elf
-./build/release/simcourse tests/fibonacci.elf --threaded
-```
-
-Симулятор принимает ELF для TIM ISA.
-
-## Сборка через Nix
-
-Проект содержит `flake.nix` и `flake.lock`: версии окружения и зависимостей
-зафиксированы. Нужен Nix с включённой поддержкой flakes. Поддерживаются
-`x86_64-linux` и `aarch64-linux`.
+Подключите [Ruby DSL](rubyDSL/microAsm.rb) через `require_relative`. Опишите
+инструкции, метки и данные в блоке `assembleElf(ARGV.fetch(0)) do ... end`.
+Первый аргумент скрипта задаёт путь к выходному ELF.
 
 ```bash
-# Собрать Release; сборка включает запуск CTest.
-nix build
-
-# Запустить собранный симулятор.
-./result/bin/simcourse tests/fibonacci.elf --threaded
-
-# Войти в окружение разработки с Clang, CMake, Ninja и Ruby.
-nix develop
+ruby program.rb program.elf
+./result/bin/simcourse program.elf
 ```
 
-Внутри `nix develop` доступны команды CMake, генератора и бенчмарков из этого
-README. `nix build` собирает пакет симулятора; бенчмарки собирает Ruby-раннер.
+Пример скрипта с таким интерфейсом — [arithmetic.rb](benchmarks/workloads/arithmetic.rb).
+Если вы собрали симулятор через CMake, используйте `./build/release/simcourse`
+или `./build/debug/simcourse`.
+
+В режиме `--dbt` параметр `--threshold` задаёт, сколько раз блок должен
+выполниться в интерпретаторе до трансляции. По умолчанию это `1`. Значение `0`
+означает трансляцию при первом входе в блок. Флаги `--dbt` и `--threaded`
+используются по отдельности.
 
 ## Бенчмарки
 
-Сравнивается switch и threaded на арифметике, переходах, обращениях
-к памяти, CRC32, сортировке вставками (`insertion_sort`) и пузырьковой
-сортировке (`bubble_sort`).
+`comparison` измеряет время исполнения во всех четырёх режимах и проверяет,
+что по окончании совпадают значения регистров, счётчика команд и содержимое
+памяти. Ускорение считается относительно naive switch. Каждый замер начинается
+с пустых кешей, а время DBT включает инициализацию и трансляцию блоков.
 
 ```bash
-ruby benchmarks/run.rb comparison
+# Сравнить все режимы на всех нагрузках.
+nix develop -c ruby benchmarks/run.rb comparison --plot
+
+# Проверить, как порог трансляции меняет ускорение DBT.
+nix develop -c ruby benchmarks/run.rb threshold-sweep --plot
 ```
 
-Доступны также другие опции запуска подробности: `ruby benchmarks/run.rb --help`.
+Раннер собирает `simcourse_bench` по пресету `benchmark`. Для выбора нагрузки
+используйте `--case`, а для задания порогов в `threshold-sweep` — `--thresholds`.
+Команды `ruby benchmarks/run.rb --list` и `ruby benchmarks/run.rb --help`
+показывают доступные нагрузки и параметры.
 
-Артефакты сохраняются в `benchmark-results/<UTC-время>/`.
+Раннер сохраняет `results.json`, `report.md` и логи в
+`benchmark-results/<UTC-время>/`. С `--plot` там же появится `dispatch-speedup`
+или `threshold-speedup` в PNG и SVG. График можно построить по уже сохранённым
+замерам.
 
-**[Отчёт: результаты и применённые оптимизации](benchmarks/threaded_vs_switch.md).**
+```bash
+nix develop -c python3 benchmarks/plot.py 'benchmark-results/<каталог-прогона>/results.json'
+```
+
+[отчёт по измерениям](benchmarks/results/dbt.md).
+
+![Ускорение относительно naive switch, bubble_sort на 256 элементах](benchmarks/results/dbt-comparison-bubble-sort-256.png)

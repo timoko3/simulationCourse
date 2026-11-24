@@ -18,6 +18,7 @@ module Benchmarks
             report = suite.run(cases: options.fetch(:cases), output: options.fetch(:output))
 
             Report.print(report)
+            plot_results(options.fetch(:output)) if options[:plot]
             puts "Results: #{File.expand_path(options.fetch(:output))}"
 
             0
@@ -39,6 +40,11 @@ module Benchmarks
 
             mode = options[:execution][:mode]
             raise OptionParser::MissingArgument, 'MODE' unless mode
+
+            if options[:plot] && !%w[comparison threshold-sweep].include?(mode)
+                raise OptionParser::InvalidArgument, '--plot requires comparison or threshold-sweep mode'
+            end
+
             request = options.fetch(:execution).reject { |key, _value| key == :binary }
             Suite.validate_request(**request)
             Suite.select_cases(options.fetch(:cases))
@@ -53,7 +59,7 @@ module Benchmarks
             OptionParser.new do |cli|
                 cli.banner = 'Usage: ruby benchmarks/run.rb MODE [options]'
 
-                cli.on('--mode MODE', Suite::MODES, 'threaded, switch or comparison') do |value|
+                cli.on('--mode MODE', Suite::MODES, 'naive, threaded, switch, dbt, comparison or threshold-sweep') do |value|
                     options[:execution][:mode] = value
                 end
 
@@ -73,12 +79,24 @@ module Benchmarks
                     options[:execution][:warmups] = value
                 end
 
+                cli.on('--thresholds LIST', Array, "DBT thresholds for threshold-sweep (default: #{Suite::DEFAULT_THRESHOLDS.join(',')})") do |values|
+                    unless values.all? { |value| value.match?(/\A[0-9]+\z/) }
+                        raise OptionParser::InvalidArgument, 'thresholds must be nonnegative integers'
+                    end
+
+                    options[:execution][:thresholds] = values.map { |value| Integer(value, 10) }.sort
+                end
+
                 cli.on('--timeout SECONDS', Float, 'Timeout for each child process') do |value|
                     options[:execution][:timeout] = value
                 end
 
                 cli.on('--output DIRECTORY', 'New directory for ELF, logs and results') do |value|
                     options[:output] = value
+                end
+
+                cli.on('--plot', 'Save a normalized PNG/SVG chart (requires Python 3 and Matplotlib)') do
+                    options[:plot] = true
                 end
 
                 cli.on('--list', 'List workloads') do
@@ -91,6 +109,11 @@ module Benchmarks
                     options[:information_only] = true
                 end
             end
+        end
+
+        def self.plot_results(directory)
+            command = ['python3', File.join(__dir__, 'plot.py'), File.join(directory, 'results.json')]
+            raise 'Plot failed; measurements are saved in results.json' unless system(*command)
         end
 
         def self.prepare_binary(explicit_path)
@@ -124,9 +147,12 @@ module Benchmarks
         def self.build_benchmark(directory)
             cache = File.join(directory, 'CMakeCache.txt')
             build_file = File.join(directory, 'build.ninja')
-            presets = File.join(PROJECT_ROOT, 'CMakePresets.json')
-            needs_configuration = !File.file?(cache) || !File.file?(build_file) ||
-                File.mtime(presets) > File.mtime(cache)
+            configuration_stamp = File.join(directory, 'CMakeFiles', 'cmake.check_cache')
+            configuration_inputs = %w[CMakeLists.txt CMakePresets.json flake.lock].map do |name|
+                File.join(PROJECT_ROOT, name)
+            end
+            needs_configuration = !File.file?(cache) || !File.file?(build_file) || !File.file?(configuration_stamp) ||
+                configuration_inputs.any? { |path| File.mtime(path) > File.mtime(configuration_stamp) }
 
             commands = []
             commands << ['cmake', '--preset', BUILD_PRESET] if needs_configuration
